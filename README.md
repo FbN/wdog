@@ -17,6 +17,20 @@ cargo install --path .        # or: cargo build --release && cp target/release/w
 
 Linux only (reads `/proc`). No root needed.
 
+`wait --url` speaks plain `http://` by default. For `https://`, build with the `https` feature (rustls with bundled root certificates, no OpenSSL needed, about 1.3 MB larger):
+
+```bash
+cargo install --path . --features https
+```
+
+Static binaries (musl, run on any x86_64 Linux):
+
+```bash
+rustup target add x86_64-unknown-linux-musl
+./scripts/release.sh          # dist/wdog and dist/wdog-https; checks they are static
+./scripts/release.sh --test   # also runs the whole test suite against the musl build
+```
+
 ## Commands
 
 ```bash

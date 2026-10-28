@@ -134,7 +134,7 @@ Codes 124–127 can also come from a step itself. The `reason=` on the `DONE` li
 | `--stdin-tty` | let the command read the terminal (humans only; agents have no terminal) |
 | `--retry N` | rerun a failed step up to N times (flaky steps only) |
 
-`wait` options: `--for D`, `--until REGEX`, `--port N`, `--url URL` (ready when status < 500), `--file PATH`. Durations: `45`, `45s`, `30m`, `2h`.
+`wait` options: `--for D`, `--until REGEX`, `--port N`, `--url URL` (ready when status < 500; `https://` only in a wdog built with the `https` feature, otherwise exit 125), `--file PATH`. Durations: `45`, `45s`, `30m`, `2h`.
 
 ## Things to know
 

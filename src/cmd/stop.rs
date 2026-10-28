@@ -43,9 +43,10 @@ pub fn run(id: &str, grace: &str, json: bool) -> Result<Exit> {
 
     let report = if st.is_live_state() && watcher_alive(&st) {
         // the supervisor forwards SIGTERM and records state=stopped; stop enforces the grace
+        // count before signalling: the supervisor may kill everything before our first read
+        let mut first_members = kill::alive_count(&st.pgids, &st.pids);
         let _ = send(Pid::from_raw(st.watcher_pid), Signal::SIGTERM);
         let t0 = Instant::now();
-        let mut first_members = 0;
         loop {
             let cur = status::read(&paths.status).unwrap_or_else(|_| st.clone());
             let n = kill::alive_count(&cur.pgids, &cur.pids);

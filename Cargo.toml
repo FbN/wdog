@@ -12,6 +12,8 @@ path = "src/main.rs"
 
 [features]
 default = []
+# https:// for `wait --url` (rustls + bundled webpki roots; no system OpenSSL)
+https = ["ureq/rustls"]
 
 [dependencies]
 anyhow = "1"
@@ -24,7 +26,7 @@ futures-lite = "2"
 nix = { version = "0.31", features = ["process", "signal", "fs", "term", "ioctl", "user"] }
 regex = "1"
 serde = { version = "1", features = ["derive"] }
-serde_json = { version = "1", features = ["preserve_order"] }
+serde_json = { version = "1", features = ["preserve_order", "float_roundtrip"] }
 ureq = { version = "3", default-features = false }
 
 [dev-dependencies]

@@ -169,3 +169,11 @@ fn sleep_ignores_job_exit() {
         Some(WaitOutcome::Alert(_))
     ));
 }
+
+#[test]
+fn url_schemes() {
+    assert!(check_url("http://127.0.0.1:3000/health").is_ok());
+    assert!(check_url("ftp://x/").is_err());
+    assert!(check_url("localhost:3000").is_err());
+    assert_eq!(check_url("https://localhost/").is_ok(), cfg!(feature = "https"));
+}

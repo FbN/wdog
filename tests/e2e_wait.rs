@@ -22,7 +22,7 @@ fn port_acceptance_8123() {
 }
 
 #[test]
-fn port_free_and_https_rejected() {
+fn port_free() {
     let e = Env::new();
     let port = free_port();
     let id = e.start(&[
@@ -33,8 +33,70 @@ fn port_free_and_https_rejected() {
         let o = e.run(&["wait", &id, "--port", &port.to_string(), "--for", "10s"]);
         assert_eq!(o.code, Some(0), "{}", o.stdout);
     }
+    e.run(&["stop", &id]);
+}
+
+#[cfg(not(feature = "https"))]
+#[test]
+fn https_rejected_without_feature() {
+    let e = Env::new();
+    let id = e.start(&["--", "sleep 6310"]);
     let o = e.run(&["wait", &id, "--url", "https://localhost/", "--for", "1s"]);
     assert_eq!(o.code, Some(125));
+    assert!(o.stdout.contains("'https' feature") || o.stderr.contains("'https' feature"));
+    e.run(&["stop", &id]);
+}
+
+/// With the feature: https is accepted, and a self-signed certificate is never "ready".
+#[cfg(feature = "https")]
+#[test]
+fn https_checks_certificate() {
+    if !has("python3") || !has("openssl") {
+        return;
+    }
+    let e = Env::new();
+    let d = tempfile::tempdir().unwrap();
+    let (key, crt) = (d.path().join("k.pem"), d.path().join("c.pem"));
+    let o = e.output({
+        let mut c = std::process::Command::new("openssl");
+        c.args([
+            "req",
+            "-x509",
+            "-newkey",
+            "rsa:2048",
+            "-nodes",
+            "-days",
+            "1",
+            "-subj",
+            "/CN=127.0.0.1",
+        ])
+        .arg("-keyout")
+        .arg(&key)
+        .arg("-out")
+        .arg(&crt);
+        c
+    });
+    assert_eq!(o.code, Some(0), "{}", o.stderr);
+    let port = free_port();
+    let py = format!(
+        "import http.server,ssl;s=http.server.HTTPServer(('127.0.0.1',{port}),http.server.SimpleHTTPRequestHandler);\
+         c=ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER);c.load_cert_chain('{}','{}');\
+         s.socket=c.wrap_socket(s.socket,server_side=True);s.serve_forever()",
+        crt.display(),
+        key.display()
+    );
+    let id = e.start(&["--", &format!("exec python3 -c \"{py}\"")]);
+    let o = e.run(&["wait", &id, "--port", &port.to_string(), "--for", "10s"]);
+    assert_eq!(o.code, Some(0), "{}", o.stdout);
+    let url = format!("https://127.0.0.1:{port}/");
+    let o = e.run(&["wait", &id, "--url", &url, "--for", "2s"]);
+    assert_eq!(
+        o.code,
+        Some(124),
+        "untrusted cert must not be ready: {}",
+        o.stdout
+    );
+    assert!(o.has("TIMEOUT"));
     e.run(&["stop", &id]);
 }
 

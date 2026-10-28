@@ -72,3 +72,14 @@ fn final_states() {
     }
     assert!(!is_final("running") && !is_final("lost") && !is_final("starting"));
 }
+
+/// Timestamps written with full precision must read back bit-exact (serde_json float_roundtrip).
+#[test]
+fn timestamps_round_trip_exactly() {
+    let mut x = 1_761_660_000.0_f64;
+    for _ in 0..20_000 {
+        x += 0.000_123_456_7;
+        let back: f64 = serde_json::from_str(&serde_json::to_string(&x).unwrap()).unwrap();
+        assert_eq!(back.to_bits(), x.to_bits(), "{x}");
+    }
+}

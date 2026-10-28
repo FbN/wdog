@@ -234,6 +234,17 @@ pub struct WaitOpts {
     pub json: bool,
 }
 
+/// `http://` always; `https://` only in a build with the `https` feature.
+pub fn check_url(u: &str) -> Result<()> {
+    if u.starts_with("http://") || (cfg!(feature = "https") && u.starts_with("https://")) {
+        return Ok(());
+    }
+    if u.starts_with("https://") {
+        bail!("--url {u}: https needs a wdog built with the 'https' feature; use http");
+    }
+    bail!("--url {u}: expected http://...")
+}
+
 pub fn wait(id: &str, o: WaitOpts) -> Result<Exit> {
     let for_ = o.for_.as_deref().map(|d| dur("for", d)).transpose()?;
     let until = o
@@ -243,12 +254,7 @@ pub fn wait(id: &str, o: WaitOpts) -> Result<Exit> {
         .transpose()
         .map_err(|e| anyhow::anyhow!("--until: bad regex: {e}"))?;
     if let Some(u) = &o.url {
-        if u.starts_with("https://") {
-            bail!("--url {u}: https needs a wdog built with the 'https' feature; use http");
-        }
-        if !u.starts_with("http://") {
-            bail!("--url {u}: expected http://...");
-        }
+        check_url(u)?;
     }
     let home = wdog_home()?;
     let paths = job(&home, id)?;
