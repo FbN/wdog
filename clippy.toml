@@ -1,0 +1,12 @@
+disallowed-methods = [
+  { path = "std::process::Command::output", reason = "the reaper owns every wait (plan overview §5)" },
+  { path = "std::process::Command::status", reason = "the reaper owns every wait (plan overview §5)" },
+  { path = "std::process::Child::wait", reason = "the reaper owns every wait (plan overview §5)" },
+  { path = "std::process::Child::wait_with_output", reason = "the reaper owns every wait (plan overview §5)" },
+]
+disallowed-macros = [
+  { path = "std::print", reason = "use console.rs" },
+  { path = "std::println", reason = "use console.rs" },
+  { path = "std::eprint", reason = "use console.rs" },
+  { path = "std::eprintln", reason = "use console.rs" },
+]

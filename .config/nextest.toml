@@ -1,0 +1,6 @@
+[test-groups]
+timed = { max-threads = 2 }
+
+[[profile.default.overrides]]
+filter = "kind(test)"
+test-group = "timed"

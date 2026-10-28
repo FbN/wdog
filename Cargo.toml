@@ -1,0 +1,37 @@
+[package]
+name = "wdog"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.85"
+description = "Watchdog runner for long shell commands, built for coding agents"
+publish = false
+
+[[bin]]
+name = "wdog"
+path = "src/main.rs"
+
+[features]
+default = []
+
+[dependencies]
+anyhow = "1"
+async-executor = "1.14"
+async-io = "2.6"
+async-signal = "0.2"
+clap = { version = "4.6", features = ["derive"] }
+fastrand = "2"
+futures-lite = "2"
+nix = { version = "0.31", features = ["process", "signal", "fs", "term", "ioctl", "user"] }
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+ureq = { version = "3", default-features = false }
+
+[dev-dependencies]
+tempfile = "3"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true

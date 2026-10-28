@@ -1,0 +1,11 @@
+## Long-running commands: use `wdog`
+- Wrap any command that may take > 30 s: `wdog run -- 'npm ci' 'npm test'` (quiet for agents: only `[wdog]` lines and the last 20 lines; `wdog tail <id> -n 100` for more).
+- Need a `.env` file? Add `--env-file .env.development` instead of `set -a && . ./.env && set +a`.
+- Servers and watchers: `wdog start -- 'npm run dev'` (prints `[wdog] id=<id> ...`), then `wdog wait <id> --port 3000 --for 2m`.
+- Never write `> log 2>&1 &`, `sleep N; tail`, or `kill -0` loops; use `wdog start`, `wdog wait`, `wdog tail <id> -n 50`.
+- A `[wdog] STALL`, `PROMPT`, `ORPHANS` or `ERROR_LIVE` line means: stop waiting, look at `wdog tail <id>`.
+- `PROMPT`: rerun non-interactively (`-y`, `--yes`, `CI=1`, `GIT_EDITOR=true`), do not try to answer it.
+- Stay under your tool timeout: `wdog start`, then repeat `wdog wait <id> --for 5m`.
+- Clean up with `wdog stop <id>`. Check jobs with `wdog status`.
+- Background processes started by a `wdog run` step die when `wdog run` ends; use `wdog start` for anything that must keep running.
+- Read the **last `[wdog]` line**, not just the exit code: `DONE exit=126 reason=kill_on_stall` and `DONE exit=126 reason=step_failed` share a code. 125 + `ERROR` = wdog itself failed.
