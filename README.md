@@ -58,7 +58,7 @@ wdog run   [opts] -- 'cmd1' ['cmd2' ...]   # foreground, returns when done
 wdog start [opts] -- 'cmd1' ['cmd2' ...]   # background, prints [wdog] id=<id> log=<path>
 wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH] [--json]
 wdog sleep 30s [<id>] [--json]
-wdog status [<id>] [--json]
+wdog status [<id>] [--steps] [--json]   # --steps: one line per step
 wdog tail  <id> [-n 50] [-f] [--raw]
 wdog errors <id> [--json]
 wdog stop  <id> [--grace 5s] [--json]

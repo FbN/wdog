@@ -90,7 +90,7 @@ fn dispatch(c: Cmd) -> anyhow::Result<Exit> {
             },
         ),
         Cmd::Sleep(a) => cmd::wait::sleep(&a.duration, a.id.as_deref(), a.json),
-        Cmd::Status(a) => cmd::status::run(a.id.as_deref(), a.json),
+        Cmd::Status(a) => cmd::status::run(a.id.as_deref(), a.steps, a.json),
         Cmd::Tail(a) => cmd::tail::run(&a.id, a.n, a.follow, a.raw),
         Cmd::Errors(a) => cmd::errors::run(&a.id, a.json),
         Cmd::Stop(a) => cmd::stop::run(&a.id, &a.grace, a.json),

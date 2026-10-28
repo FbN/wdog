@@ -77,6 +77,7 @@ wdog sleep 5m <id>     # exit 0 after 5 min, exit 1 early if the job raises an a
 
 ```bash
 wdog status            # one line per job: id, state, runtime, idle seconds, step, last line
+wdog status <id> --steps  # every step: ok/failed with exit and time, running, pending, not_run
 wdog errors <id>       # error-pattern matches with log line numbers
 wdog tail <id> -n 100  # last lines of the log
 ```

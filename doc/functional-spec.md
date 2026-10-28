@@ -102,7 +102,7 @@ Priorities: **Must** for the first version, **Should** soon after, **Could** if 
 | ID | Requirement | Priority |
 | --- | --- | --- |
 | BG-1 | `wdog start` launches a run detached from the calling shell and prints its id immediately. All `run` options apply. | Must |
-| BG-2 | `wdog status [<id>]` prints one line per job: id, state, runtime, seconds since last activity, current step, last output line. | Must |
+| BG-2 | `wdog status [<id>]` prints one line per job: id, state, runtime, seconds since last activity, current step, last output line. With `--steps`, it also prints one line per step: `ok`/`failed` (exit code, duration), `running`, `pending`, `not_run` (the job ended first) or `interrupted` (the watcher died during it), plus the attempt count with `--retry`. | Must |
 | BG-3 | `wdog tail <id> [-n N] [-f]` shows the log; `-f` follows it (for humans). | Must |
 | BG-4 | `wdog stop <id>` sends SIGTERM to the whole tree, then SIGKILL after `--grace` (default 5 s). | Must |
 | BG-5 | `wdog errors <id>` lists error-pattern matches with log line numbers. | Should |
@@ -118,7 +118,7 @@ wdog run   [opts] -- 'cmd1' ['cmd2' ...]   # foreground, returns when done
 wdog start [opts] -- 'cmd1' ['cmd2' ...]   # background, prints <id>
 wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH]
 wdog sleep 30s [<id>]
-wdog status [<id>]
+wdog status [<id>] [--steps]
 wdog tail  <id> [-n 50] [-f]
 wdog errors <id>
 wdog stop  <id> [--grace 5s]

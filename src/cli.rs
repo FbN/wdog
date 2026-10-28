@@ -147,6 +147,9 @@ pub struct SleepArgs {
 #[derive(Args, Debug)]
 pub struct StatusArgs {
     pub id: Option<String>,
+    /// Also list every step: done (exit, duration), running, pending or not run
+    #[arg(long)]
+    pub steps: bool,
     #[arg(long)]
     pub json: bool,
 }

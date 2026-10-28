@@ -301,3 +301,40 @@ fn json_for_errors_stop_gc() {
     assert_eq!(v["event"], "GC");
     assert_eq!(v["removed"], 0);
 }
+
+#[test]
+fn status_steps() {
+    let e = Env::new();
+    let id = e.start(&["--", "echo a", "sleep 6511", "echo c"]);
+    assert!(e.wait_state(&id, "running", Duration::from_secs(3)));
+    let t0 = std::time::Instant::now();
+    while e.status(&id)["step"] != 2 && t0.elapsed() < Duration::from_secs(3) {
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    let o = e.run(&["status", &id, "--steps"]);
+    let lines: Vec<&str> = o.stdout.lines().collect();
+    assert_eq!(lines.len(), 4, "{}", o.stdout);
+    assert!(lines[1].contains("1/3 ok") && lines[1].contains("exit=0") && lines[1].ends_with("echo a"));
+    assert!(lines[2].contains("2/3 running") && lines[2].ends_with("sleep 6511"));
+    assert!(lines[3].contains("3/3 pending") && lines[3].ends_with("echo c"));
+
+    let o = e.run(&["status", &id, "--steps", "--json"]);
+    let v: serde_json::Value = serde_json::from_str(o.stdout.trim()).unwrap();
+    let st: Vec<&str> = v["steps"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["state"].as_str().unwrap())
+        .collect();
+    assert_eq!(st, ["ok", "running", "pending"]);
+    assert_eq!(v["steps"][0]["cmd"], "echo a");
+
+    e.run(&["stop", &id]);
+    let o = e.run(&["status", &id, "--steps", "--json"]);
+    let v: serde_json::Value = serde_json::from_str(o.stdout.trim()).unwrap();
+    assert_eq!(v["steps"][1]["state"], "failed");
+    assert_eq!(v["steps"][2]["state"], "not_run");
+    // without --steps the JSON has no steps field
+    let o = e.run(&["status", &id, "--json"]);
+    assert!(!o.stdout.contains("\"steps\""), "{}", o.stdout);
+}
