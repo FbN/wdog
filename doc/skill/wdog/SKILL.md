@@ -95,10 +95,11 @@ wdog tail <id> -n 100  # last lines of the log
 | `ERROR_LIVE log:<n> "..."` | an error line while the process still runs (`FATAL`, `Traceback`, `panic:`, `EADDRINUSE`, ...) | inspect now; it may never exit on its own |
 | `ERRORS <n>: log:<line> "..." \| ...` | summary of error matches at the end | start debugging from these lines |
 | `TAIL 20` / `HEAD 20` | the block that follows is the end / start of the output | read it |
+| `SKIPPED <n> lines` | between `HEAD` and `TAIL` (both given): lines not shown | `wdog tail <id> -n <more>` if you need them |
 | `TIMEOUT after=...` | `--max` (run) or `--for` (wait) reached | run: the job was killed; wait: the job still runs, wait again or stop it |
 | `READY port=3000` | the `wait` condition is met | go on |
 | `STOPPED sig=SIGTERM` | the job was stopped (`wdog stop`, Ctrl-C, a signal) | nothing, unless unexpected |
-| `LOST killed=<n>` | the watcher itself died (killed, crashed); its tree was cleaned up | rerun the job |
+| `LOST killed=<n>` | the watcher itself died (killed, crashed); its tree was cleaned up (the step's main process dies with the watcher, `killed` counts only what was left after it, so 0 is normal) | rerun the job |
 | `LOG_FULL at=64MiB` | the log hit its size cap; later lines are not on disk | the final `TAIL` is still correct; reduce output if you need the middle |
 | `DONE exit=<n> reason=<r> <dur>` | the run ended | see exit codes below |
 | `ERROR <msg>` | wdog itself failed (bad options, cannot start, bad `.env`) | fix the command line |
@@ -130,7 +131,7 @@ Codes 124–127 can also come from a step itself. The `reason=` on the `DONE` li
 | `--err REGEX` | extra error pattern (repeatable); `--no-default-err` drops the built-ins |
 | `--tail N` / `--head N` | how many output lines to show at the end (default: last 20) |
 | `--live` | stream live output (default off when your stdout is not a terminal) |
-| `--json` | `[wdog]` events as JSON lines |
+| `--json` | events as JSON lines (`{"v":1,"ts":...,"event":"DONE",...}`); also on `wait`, `sleep`, `status`, `errors`, `stop`, `gc`, and for wdog's own `ERROR`. With `--live`, child output stays plain text: parse only lines starting with `{` |
 | `--stdin-tty` | let the command read the terminal (humans only; agents have no terminal) |
 | `--retry N` | rerun a failed step up to N times (flaky steps only) |
 

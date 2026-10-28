@@ -41,7 +41,7 @@ fn main() {
                 .unwrap_or("bad arguments")
                 .trim_start_matches("error: ");
             console::err(&msg);
-            console::out(&format!("[wdog] ERROR {first}"));
+            print_error(first);
             exit::apply(Exit::Code(exit::WDOG_FAILED));
         }
     };
@@ -49,11 +49,29 @@ fn main() {
     let code = match result {
         Ok(e) => e,
         Err(e) => {
-            console::out(&format!("[wdog] ERROR {e:#}"));
+            print_error(&format!("{e:#}"));
             Exit::Code(exit::WDOG_FAILED)
         }
     };
     exit::apply(code)
+}
+
+/// `--json` given before the `--` that starts the step commands.
+fn wants_json() -> bool {
+    std::env::args()
+        .skip(1)
+        .take_while(|a| a != "--")
+        .any(|a| a == "--json")
+}
+
+/// wdog's own failure (exit 125): one `ERROR` line, as JSON with `--json`.
+fn print_error(msg: &str) {
+    let e = event::Event::Error { msg: msg.to_string() };
+    if wants_json() {
+        console::out(&event::render_json(&e, std::time::SystemTime::now()));
+    } else {
+        console::out(&event::render_text(&e));
+    }
 }
 
 fn dispatch(c: Cmd) -> anyhow::Result<Exit> {

@@ -67,7 +67,9 @@ Durations: `45`, `45s`, `30m`, `2h`, `200ms`.
 
 Live output is shown only on a terminal (or with `--live`); when stdout is a pipe, as for
 agents, only `[wdog]` lines and the final summary are printed. `--json` prints events as JSON
-lines. Every job keeps `out.log`, `events.jsonl` and `status.json` in `$WDOG_HOME/<id>/`.
+lines (`{"v":1,"ts":...,"event":"DONE",...}`), for every command, including wdog's own `ERROR`
+(exit 125). Live child output is never wrapped: with `--json --live` it stays plain text
+between the JSON lines, so parse only lines that start with `{`. Every job keeps `out.log`, `events.jsonl` and `status.json` in `$WDOG_HOME/<id>/`.
 
 ## Exit codes
 
