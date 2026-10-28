@@ -11,30 +11,39 @@ Agent skill: [`doc/skill/wdog/SKILL.md`](doc/skill/wdog/SKILL.md).
 
 ## Install
 
+Linux only (reads `/proc`). No root needed. Needs Rust 1.85 or newer.
+
 ```bash
-cargo install --path .        # or: cargo build --release && cp target/release/wdog ~/.local/bin/
+cargo install --git https://github.com/FbN/wdog wdog
 ```
 
-Linux only (reads `/proc`). No root needed.
-
-`wait --url` speaks plain `http://` by default. For `https://`, build with the `https` feature (rustls with bundled root certificates, no OpenSSL needed, about 1.3 MB larger):
+`wait --url` speaks plain `http://` by default. For `https://`, add the `https` feature (rustls
+with bundled root certificates, no OpenSSL needed, about 1.3 MB larger):
 
 ```bash
-cargo install --path . --features https
+cargo install --git https://github.com/FbN/wdog wdog --features https
 ```
 
-Arch Linux package (built from the last commit of this checkout, https included):
+From a clone: `cargo install --path .` (same `--features https` option).
+
+### Arch Linux
+
+The PKGBUILD builds the latest `main` from GitHub, with https included:
 
 ```bash
-cd packaging/arch
+mkdir wdog-pkg && cd wdog-pkg
+curl -LO https://raw.githubusercontent.com/FbN/wdog/main/packaging/arch/PKGBUILD
 makepkg -si                   # add --check to run the test suite during the build
 ```
 
 This installs `/usr/bin/wdog`, the docs in `/usr/share/doc/wdog/` and the agent skill in
 `/usr/share/wdog/skill/wdog/` (copy that folder into your agent's skills folder). Set
-`_https=0` in the PKGBUILD for a build without https. Remove with `sudo pacman -R wdog-git`.
+`_https=0` in the PKGBUILD for a build without https. Update by running `makepkg -si` again;
+remove with `sudo pacman -R wdog-git`.
 
-Static binaries (musl, run on any x86_64 Linux):
+### Static binaries
+
+musl builds that run on any x86_64 Linux:
 
 ```bash
 rustup target add x86_64-unknown-linux-musl

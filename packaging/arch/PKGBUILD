@@ -1,7 +1,7 @@
 # Maintainer: Fabiano Taioli <ftaioli@gmail.com>
 #
-# Builds the last commit of the wdog checkout this file sits in (uncommitted
-# changes are not included). Run from this folder:  makepkg -si
+# Builds the latest commit of https://github.com/FbN/wdog (main branch).
+# Run from the folder holding this file:  makepkg -si
 #
 # Set _https=0 to build without https:// support for `wait --url`.
 
@@ -12,13 +12,14 @@ pkgver=0.1.0.r4.g55f709f
 pkgrel=1
 pkgdesc='Watchdog runner for long shell commands, built for coding agents'
 arch=('x86_64')
+url='https://github.com/FbN/wdog'
 license=('MIT')
 depends=('gcc-libs' 'glibc')
 makedepends=('cargo' 'git')
 provides=('wdog')
 conflicts=('wdog')
 options=('!lto' '!debug')
-source=("wdog::git+file://$(realpath "$startdir/../..")")
+source=("wdog::git+https://github.com/FbN/wdog.git#branch=main")
 sha256sums=('SKIP')
 
 pkgver() {
