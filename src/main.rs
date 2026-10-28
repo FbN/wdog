@@ -74,9 +74,9 @@ fn dispatch(c: Cmd) -> anyhow::Result<Exit> {
         Cmd::Sleep(a) => cmd::wait::sleep(&a.duration, a.id.as_deref(), a.json),
         Cmd::Status(a) => cmd::status::run(a.id.as_deref(), a.json),
         Cmd::Tail(a) => cmd::tail::run(&a.id, a.n, a.follow, a.raw),
-        Cmd::Errors(a) => cmd::errors::run(&a.id),
-        Cmd::Stop(a) => cmd::stop::run(&a.id, &a.grace),
-        Cmd::Gc => cmd::gc::run(),
+        Cmd::Errors(a) => cmd::errors::run(&a.id, a.json),
+        Cmd::Stop(a) => cmd::stop::run(&a.id, &a.grace, a.json),
+        Cmd::Gc(a) => cmd::gc::run(a.json),
         Cmd::Supervise(a) => cmd::supervise::run(&a.id),
         Cmd::Guard(a) => cmd::guard::run(&a.id),
         Cmd::Env0 => {

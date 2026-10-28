@@ -209,3 +209,10 @@ fn alerts() {
     assert!(!Event::Resumed { after: 1.0 }.is_alert());
     assert!(!Event::Lost { killed: 0 }.is_alert());
 }
+
+#[test]
+fn json_line_shape() {
+    let ts = SystemTime::UNIX_EPOCH + std::time::Duration::from_millis(1500);
+    let l = json_line("GC", serde_json::json!({ "removed": 2 }), ts);
+    assert_eq!(l, r#"{"v":1,"ts":1.5,"event":"GC","removed":2}"#);
+}

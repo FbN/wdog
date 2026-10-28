@@ -2,6 +2,7 @@
 
 use crate::cli::dur;
 use crate::console;
+use crate::event::json_line;
 use crate::exec::kill;
 use crate::exit::Exit;
 use crate::job::dir::{job, wdog_home};
@@ -10,13 +11,13 @@ use crate::proc::read::pid_alive;
 use anyhow::Result;
 use nix::sys::signal::{Signal, kill as send};
 use nix::unistd::Pid;
-use std::time::{Duration, Instant};
+use std::time::{Duration, Instant, SystemTime};
 
 fn watcher_alive(st: &Status) -> bool {
     st.watcher_pid > 0 && pid_alive(st.watcher_pid, st.watcher_start_ticks)
 }
 
-pub fn run(id: &str, grace: &str) -> Result<Exit> {
+pub fn run(id: &str, grace: &str, json: bool) -> Result<Exit> {
     let grace = dur("grace", grace)?;
     let home = wdog_home()?;
     let paths = job(&home, id)?;
@@ -31,7 +32,12 @@ pub fn run(id: &str, grace: &str) -> Result<Exit> {
 
     let plan = kill::plan_kill(&crate::proc::read::snapshot_basic(), &st.pgids, &st.pids);
     if !st.is_live_state() && plan.members.is_empty() && plan.skipped == 0 {
-        console::out(&format!("[wdog] STOPPED already={}", st.state));
+        if json {
+            let j = serde_json::json!({ "id": paths.id, "already": st.state });
+            console::out(&json_line("STOPPED", j, SystemTime::now()));
+        } else {
+            console::out(&format!("[wdog] STOPPED already={}", st.state));
+        }
         return Ok(Exit::Code(0));
     }
 
@@ -72,6 +78,16 @@ pub fn run(id: &str, grace: &str) -> Result<Exit> {
         // supervisor gone (lost job, or a finished `wdog run` that left orphans)
         kill::kill_tree(&st.pgids, &st.pids, grace)
     };
+    if json {
+        let j = serde_json::json!({
+            "id": paths.id,
+            "killed": report.killed,
+            "skipped": report.skipped,
+            "survivors": report.survivors,
+        });
+        console::out(&json_line("STOPPED", j, SystemTime::now()));
+        return Ok(Exit::Code(if report.survivors > 0 { 1 } else { 0 }));
+    }
     let skipped = if report.skipped > 0 {
         format!(" skipped={}", report.skipped)
     } else {

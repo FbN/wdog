@@ -263,3 +263,41 @@ fn unsafe_wdog_home_refused() {
     c.args(["run", "--", "true"]).env("WDOG_HOME", &real);
     assert_eq!(c.output().unwrap().status.code(), Some(125));
 }
+
+/// `--json` for `errors`, `stop` and `gc`: one JSON line each (spec §7.2).
+#[test]
+fn json_for_errors_stop_gc() {
+    let parse = |o: &Out| -> serde_json::Value {
+        let lines: Vec<&str> = o.stdout.lines().collect();
+        assert_eq!(lines.len(), 1, "{}", o.stdout);
+        serde_json::from_str(lines[0]).unwrap()
+    };
+    let e = Env::new();
+    e.run(&["run", "--", "echo 'panic: boom'; echo ok; echo Traceback"]);
+    let id = e.only_job();
+    let v = parse(&e.run(&["errors", "--json", &id]));
+    assert_eq!(v["v"], 1);
+    assert_eq!(v["event"], "ERRORS");
+    assert_eq!(v["count"], 2);
+    assert_eq!(
+        v["items"],
+        serde_json::json!([[1, "panic: boom"], [3, "Traceback"]])
+    );
+
+    let v = parse(&e.run(&["stop", "--json", &id]));
+    assert_eq!(v["event"], "STOPPED");
+    assert_eq!(v["already"], "done");
+
+    let live = e.start(&["--", "sleep 6211"]);
+    assert!(e.wait_state(&live, "running", Duration::from_secs(3)));
+    let o = e.run(&["stop", "--json", &live]);
+    assert_eq!(o.code, Some(0));
+    let v = parse(&o);
+    assert_eq!(v["id"], live.as_str());
+    assert_eq!(v["survivors"], 0);
+    assert!(v["killed"].as_u64().unwrap() >= 1, "{v}");
+
+    let v = parse(&e.run(&["gc", "--json"]));
+    assert_eq!(v["event"], "GC");
+    assert_eq!(v["removed"], 0);
+}

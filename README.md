@@ -22,13 +22,13 @@ Linux only (reads `/proc`). No root needed.
 ```bash
 wdog run   [opts] -- 'cmd1' ['cmd2' ...]   # foreground, returns when done
 wdog start [opts] -- 'cmd1' ['cmd2' ...]   # background, prints [wdog] id=<id> log=<path>
-wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH]
-wdog sleep 30s [<id>]
+wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH] [--json]
+wdog sleep 30s [<id>] [--json]
 wdog status [<id>] [--json]
 wdog tail  <id> [-n 50] [-f] [--raw]
-wdog errors <id>
-wdog stop  <id> [--grace 5s]
-wdog gc
+wdog errors <id> [--json]
+wdog stop  <id> [--grace 5s] [--json]
+wdog gc [--json]
 ```
 
 Options for `run` and `start`: `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,

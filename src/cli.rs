@@ -33,11 +33,11 @@ pub enum Cmd {
     /// Show a job's log
     Tail(TailArgs),
     /// List error-pattern matches in a job's log
-    Errors(IdArg),
+    Errors(ErrorsArgs),
     /// Stop a job: SIGTERM to the tree, SIGKILL after --grace
     Stop(StopArgs),
     /// Remove job directories older than 24 hours
-    Gc,
+    Gc(GcArgs),
     #[command(hide = true, name = "__supervise")]
     Supervise(IdArg),
     #[command(hide = true, name = "__env0")]
@@ -169,6 +169,24 @@ pub struct StopArgs {
     pub id: String,
     #[arg(long, default_value = "5s", value_name = "DURATION")]
     pub grace: String,
+    /// Print the result as one JSON line
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct ErrorsArgs {
+    pub id: String,
+    /// Print the matches as one JSON line
+    #[arg(long)]
+    pub json: bool,
+}
+
+#[derive(Args, Debug)]
+pub struct GcArgs {
+    /// Print the result as one JSON line
+    #[arg(long)]
+    pub json: bool,
 }
 
 #[derive(Args, Debug)]

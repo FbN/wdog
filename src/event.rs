@@ -279,6 +279,21 @@ pub fn render_json(e: &Event, ts: SystemTime) -> String {
     v.to_string()
 }
 
+/// A JSON result line for commands whose output is not an `Event` (`stop`, `gc`).
+pub fn json_line(event: &str, fields: serde_json::Value, ts: SystemTime) -> String {
+    let mut out = serde_json::Map::new();
+    out.insert("v".into(), 1.into());
+    out.insert(
+        "ts".into(),
+        serde_json::json!((unix_secs(ts) * 1000.0).round() / 1000.0),
+    );
+    out.insert("event".into(), event.into());
+    if let serde_json::Value::Object(m) = fields {
+        out.extend(m);
+    }
+    serde_json::Value::Object(out).to_string()
+}
+
 /// Parse one `events.jsonl` line back into an event (readers: `wait`, `sleep`).
 pub fn parse_json(line: &str) -> Option<Event> {
     let v: serde_json::Value = serde_json::from_str(line).ok()?;
