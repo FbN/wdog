@@ -1,0 +1,62 @@
+# Maintainer: Fabiano Taioli <ftaioli@gmail.com>
+#
+# Builds the last commit of the wdog checkout this file sits in (uncommitted
+# changes are not included). Run from this folder:  makepkg -si
+#
+# Set _https=0 to build without https:// support for `wait --url`.
+
+_https=1
+
+pkgname=wdog-git
+pkgver=0.1.0.r4.g55f709f
+pkgrel=1
+pkgdesc='Watchdog runner for long shell commands, built for coding agents'
+arch=('x86_64')
+license=('MIT')
+depends=('gcc-libs' 'glibc')
+makedepends=('cargo' 'git')
+provides=('wdog')
+conflicts=('wdog')
+options=('!lto' '!debug')
+source=("wdog::git+file://$(realpath "$startdir/../..")")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd wdog
+  local v
+  v=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -1)
+  printf '%s.r%s.g%s' "$v" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+prepare() {
+  cd wdog
+  export RUSTUP_TOOLCHAIN=stable
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
+_features() {
+  ((_https)) && printf -- '--features=https'
+}
+
+build() {
+  cd wdog
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo build --frozen --release $(_features)
+}
+
+check() {
+  cd wdog
+  export RUSTUP_TOOLCHAIN=stable
+  export CARGO_TARGET_DIR=target
+  cargo test --frozen --release $(_features)
+}
+
+package() {
+  cd wdog
+  install -Dm0755 target/release/wdog -t "$pkgdir/usr/bin/"
+  install -Dm0644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname/"
+  install -Dm0644 README.md -t "$pkgdir/usr/share/doc/wdog/"
+  install -Dm0644 doc/agent-snippet.md -t "$pkgdir/usr/share/doc/wdog/"
+  install -Dm0644 doc/skill/wdog/SKILL.md -t "$pkgdir/usr/share/wdog/skill/wdog/"
+}

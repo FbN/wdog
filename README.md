@@ -23,6 +23,17 @@ Linux only (reads `/proc`). No root needed.
 cargo install --path . --features https
 ```
 
+Arch Linux package (built from the last commit of this checkout, https included):
+
+```bash
+cd packaging/arch
+makepkg -si                   # add --check to run the test suite during the build
+```
+
+This installs `/usr/bin/wdog`, the docs in `/usr/share/doc/wdog/` and the agent skill in
+`/usr/share/wdog/skill/wdog/` (copy that folder into your agent's skills folder). Set
+`_https=0` in the PKGBUILD for a build without https. Remove with `sudo pacman -R wdog-git`.
+
 Static binaries (musl, run on any x86_64 Linux):
 
 ```bash
@@ -87,8 +98,8 @@ A step can exit 124–127 itself, so read the last `[wdog]` line: `DONE exit=<n>
 
 ## Agent snippet
 
-See [`doc/claude-snippet.md`](doc/claude-snippet.md) for a 10-line `CLAUDE.md` block, or install
-the skill: `cp -r doc/skill/wdog ~/.claude/skills/`.
+See [`doc/agent-snippet.md`](doc/agent-snippet.md) for a 10-line block to paste into your agent's instructions file, or install
+the skill by copying `doc/skill/wdog/` into your agent's skills folder.
 
 ## Limits
 
@@ -119,3 +130,7 @@ SECS=60 ./scripts/bench-tree.sh   # NF-2: CPU while watching 50 processes
 Unit tests sit next to each module (`foo.rs` + `foo_tests.rs`); end-to-end tests are in
 `tests/`. The `spike/` package holds the throwaway checks of the Linux process behaviour
 (results in `doc/plan/spike-results.md`).
+
+## Author and license
+
+Author: Fabiano Taioli <ftaioli@gmail.com>. MIT license, see [`LICENSE`](LICENSE).

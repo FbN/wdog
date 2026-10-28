@@ -17,7 +17,7 @@ Success means:
 
 ## 2. Problem
 
-Coding agents (Claude Code and similar) run builds, test suites, installs, migrations and dev servers, then wait for them to exit before reading the result. An agent cannot see the terminal, so it doesn't notice what a person would see in seconds. Four situations are common:
+Coding agents run builds, test suites, installs, migrations and dev servers, then wait for them to exit before reading the result. An agent cannot see the terminal, so it doesn't notice what a person would see in seconds. Four situations are common:
 
 | Situation | What the agent experiences | Typical cause |
 | --- | --- | --- |
@@ -30,7 +30,7 @@ The cost is wall-clock time, tokens spent on repeated status checks, and user in
 
 - `timeout(1)` and similar enforce a total runtime, not progress.
 - CI "no output" watchdogs (CircleCI, Jenkins, project scripts) look only at output and live inside one CI platform.
-- Claude Code's background tasks and Monitor tool react to lines a command prints. They cannot report silence, tell a busy-but-quiet process from a stuck one, or detect a prompt.
+- Agents' built-in background tasks and output monitors react to lines a command prints. They cannot report silence, tell a busy-but-quiet process from a stuck one, or detect a prompt.
 
 On top of this, agents write fragile shell plumbing every time: `> log 2>&1 &`, `echo $!`, `sleep 30; tail`, `kill -0`, grep for errors. That costs tokens on every call and introduces mistakes.
 
@@ -157,7 +157,7 @@ Other event words: `ENV` (one per `--env-file`, e.g. `ENV loaded=12 file=.env.de
 | 127 | Command not found (passed through from the shell) |
 | 0 / 1 for `wait` | 0 = condition met or job exited 0; 1 = job failed or an alert woke it (the reason is in the last `[wdog]` line) |
 
-A step's own exit code can be 124, 125, 126 or 127 too (126 is common: "permission denied" from the shell), so the code alone is ambiguous. The last `[wdog]` line always says what happened: `DONE exit=<n> reason=<r>` with `reason` one of `ok`, `step_failed`, `max`, `kill_on_stall`, `stopped`; or `ERROR <msg>` when `wdog` itself failed (125). **Agents should read the last `[wdog]` line, not just the exit code.** The CLAUDE.md snippet (NF-8) says so.
+A step's own exit code can be 124, 125, 126 or 127 too (126 is common: "permission denied" from the shell), so the code alone is ambiguous. The last `[wdog]` line always says what happened: `DONE exit=<n> reason=<r>` with `reason` one of `ok`, `step_failed`, `max`, `kill_on_stall`, `stopped`; or `ERROR <msg>` when `wdog` itself failed (125). **Agents should read the last `[wdog]` line, not just the exit code.** The agent snippet (NF-8) says so.
 
 ## 6. Non-functional requirements
 
@@ -170,7 +170,7 @@ A step's own exit code can be 124, 125, 126 or 127 too (126 is common: "permissi
 | NF-5 | Works without root. Processes the user cannot read in `/proc` are counted as "alive, activity unknown" rather than as stalled. |
 | NF-6 | Code style: functional JavaScript with JSDoc type annotations. Pure functions for parsing `/proc`, building trees, detecting prompts and deciding alerts; side effects (spawning, timers, file writes) kept in a thin outer layer. |
 | NF-7 | Each pure function has unit tests; each anomaly type has an end-to-end test with a deliberately broken command. |
-| NF-8 | A ready-made 10-line snippet for `CLAUDE.md` (or an agent skill) that tells the agent when and how to use `wdog`. |
+| NF-8 | A ready-made 10-line snippet for the agent's instructions file (or an agent skill) that tells the agent when and how to use `wdog`. |
 
 ## 7. Out of scope, open questions and acceptance tests
 
