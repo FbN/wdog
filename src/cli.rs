@@ -18,11 +18,32 @@ pub struct Cli {
     pub cmd: Cmd,
 }
 
+const STEPS_HELP: &str = "\
+Steps: one quoted shell command per argument after `--`:
+  wdog run -- 'npm ci' 'npm test'
+
+Or a script, with no quoting, split into steps at `# -STEP- [label]` lines:
+  wdog run --steps-file - <<'EOF'
+  cd services/api
+  # -STEP- install
+  npm ci
+  # -STEP- test
+  npm test -- --grep 'api \"v2\"'
+  EOF
+
+  Text before the first marker is copied to the start of every step; each step is its
+  own /bin/sh and runs with `set -e` (`set +e` in that prelude turns it off). The label,
+  or else the first command, names the step in output. No marker: one step.
+
+Every line wdog writes starts with [wdog]. Read the last one: DONE exit=<n> reason=<r>, or ERROR <msg>.";
+
 #[derive(Subcommand, Debug)]
 pub enum Cmd {
     /// Run steps in the foreground and return when done
+    #[command(after_help = STEPS_HELP)]
     Run(RunArgs),
     /// Run steps as a background job and print its id
+    #[command(after_help = STEPS_HELP)]
     Start(RunArgs),
     /// Wait for a job: exit, alert, --for, or a condition
     Wait(WaitArgs),
@@ -48,6 +69,9 @@ pub enum Cmd {
 
 #[derive(Args, Debug, Clone)]
 pub struct RunArgs {
+    /// Steps from a script (`-` = stdin, e.g. <<'EOF'), split at `# -STEP- [label]` lines; see below
+    #[arg(long, value_name = "FILE", conflicts_with = "commands")]
+    pub steps_file: Option<PathBuf>,
     /// Working directory for every step
     #[arg(long, value_name = "DIR")]
     pub cwd: Option<PathBuf>,
@@ -109,10 +133,7 @@ pub struct RunArgs {
     pub prompt_grace: String,
     #[arg(long, default_value = "5s", hide = true)]
     pub orphan_grace: String,
-    /// Read the steps from a script, `-` for stdin; `# -STEP- [label]` lines split it
-    #[arg(long, value_name = "FILE", conflicts_with = "commands")]
-    pub steps_file: Option<PathBuf>,
-    /// Steps, each one shell command, after `--`
+    /// Steps, each one shell command, after `--` (or use --steps-file)
     #[arg(
         last = true,
         required_unless_present = "steps_file",
