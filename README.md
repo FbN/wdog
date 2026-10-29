@@ -42,20 +42,33 @@ Use `start --name test` instead of `run` to send it to the background, then `wdo
 
 ## Install
 
-Linux only (reads `/proc`). No root needed. Needs Rust 1.85 or newer.
+Linux only (reads `/proc`). No root needed.
+
+Prebuilt static binary (x86_64, https included, nothing to compile), with
+[cargo-binstall](https://github.com/cargo-bins/cargo-binstall):
 
 ```bash
-cargo install --git https://github.com/FbN/wdog wdog
+cargo binstall wdog
+```
+
+Or download `wdog-v<version>-x86_64-unknown-linux-musl.tar.gz` from the
+[releases](https://github.com/FbN/wdog/releases) and put `wdog` on your `PATH`.
+
+From source with cargo (needs Rust 1.85 or newer):
+
+```bash
+cargo install wdog
 ```
 
 `wait --url` speaks plain `http://` by default. For `https://`, add the `https` feature (rustls
 with bundled root certificates, no OpenSSL needed, about 1.3 MB larger):
 
 ```bash
-cargo install --git https://github.com/FbN/wdog wdog --features https
+cargo install wdog --features https
 ```
 
-From a clone: `cargo install --path .` (same `--features https` option).
+Latest `main`: `cargo install --git https://github.com/FbN/wdog wdog`. From a clone:
+`cargo install --path .` (both take `--features https` too).
 
 ### Arch Linux
 

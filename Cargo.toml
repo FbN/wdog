@@ -6,7 +6,18 @@ rust-version = "1.85"
 description = "Watchdog runner for long shell commands, built for coding agents"
 license = "MIT"
 authors = ["Fabiano Taioli <ftaioli@gmail.com>"]
-publish = false
+repository = "https://github.com/FbN/wdog"
+readme = "README.md"
+keywords = ["watchdog", "cli", "agents", "process", "monitor"]
+categories = ["command-line-utilities", "development-tools"]
+include = ["/src", "/README.md", "/LICENSE"]
+
+# cargo binstall: static musl binary (with https) from the GitHub release
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/wdog-v{ version }-{ target }.tar.gz"
+bin-dir = "{ bin }{ binary-ext }"
+pkg-fmt = "tgz"
+disabled-strategies = ["quick-install"]
 
 [[bin]]
 name = "wdog"
