@@ -76,3 +76,21 @@ fn cells() {
     assert_eq!(status_text(&st), "done");
     assert_eq!(times(&st, 9999.0).0, "-");
 }
+
+#[test]
+fn names_column_and_title() {
+    let mut named = job("aa11bb", "running");
+    named.name = Some("test".into());
+    let mut app = App {
+        now: 1100.0,
+        ..App::default()
+    };
+    app.set_jobs(vec![named.clone(), job("35b6f6", "done")]);
+    let s = screen(&mut app, 120, 10);
+    assert!(s.contains("NAME"), "{s}");
+    assert!(s.contains("aa11bb test"), "{s}");
+    assert!(s.contains("test (aa11bb) output"), "{s}");
+    assert_eq!(name_width(&[job("35b6f6", "done")]), 0);
+    named.name = Some("a-very-long-job-name".into());
+    assert_eq!(name_width(&[named]), NAME_WIDTH);
+}

@@ -21,6 +21,8 @@ fn line_format() {
     assert!(l.contains("1m40s"));
     assert!(l.contains("idle=-"));
     assert!(l.contains("exit=1"));
+    st.name = Some("test".into());
+    assert!(status_line(&st, 5000.0).contains("step=2/3 name=test exit=1"));
 }
 
 fn steps3() -> Vec<String> {

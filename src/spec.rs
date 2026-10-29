@@ -26,6 +26,12 @@ pub struct OutputMode {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct RunSpec {
     pub v: u32,
+    /// `--name`: other commands accept it in place of the id.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
+    /// The finished job with the same name that this one replaced.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub replaced: Option<String>,
     pub steps: Vec<String>,
     /// Short names for output (`--steps-file`); empty: the command itself is the name.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -75,6 +81,8 @@ impl RunSpec {
     pub fn new(steps: Vec<String>) -> RunSpec {
         RunSpec {
             v: SPEC_VERSION,
+            name: None,
+            replaced: None,
             steps,
             names: vec![],
             cwd: None,

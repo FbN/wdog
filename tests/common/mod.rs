@@ -116,7 +116,7 @@ impl Env {
             .unwrap()
             .flatten()
             .map(|d| d.file_name().to_string_lossy().to_string())
-            .filter(|n| !n.starts_with('.'))
+            .filter(|n| !n.starts_with('.') && n != "names")
             .collect();
         assert_eq!(ids.len(), 1, "jobs: {ids:?}");
         ids[0].clone()

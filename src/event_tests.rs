@@ -4,12 +4,21 @@ use super::*;
 fn golden_lines_from_spec() {
     let e = Event::Start {
         id: "a7f3".into(),
+        name: None,
+        replaced: None,
         log: "/run/user/1000/wdog/a7f3/out.log".into(),
     };
     assert_eq!(
         render_text(&e),
         "[wdog] id=a7f3 log=/run/user/1000/wdog/a7f3/out.log"
     );
+    let e = Event::Start {
+        id: "a7f3".into(),
+        name: Some("test".into()),
+        replaced: Some("b1c2".into()),
+        log: "/l".into(),
+    };
+    assert_eq!(render_text(&e), "[wdog] id=a7f3 name=test replaced=b1c2 log=/l");
     let e = Event::Step {
         n: 1,
         total: 3,

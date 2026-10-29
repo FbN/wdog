@@ -71,6 +71,10 @@ pub enum Cmd {
 
 #[derive(Args, Debug, Clone)]
 pub struct RunArgs {
+    /// Name the job; other commands accept it in place of the id. A finished job
+    /// with the same name, started in the same directory, is replaced (removed)
+    #[arg(long, value_name = "NAME")]
+    pub name: Option<String>,
     /// Steps from a script (`-` = stdin, e.g. <<'EOF'), split at `# -STEP- [label]` lines; see below
     #[arg(long, value_name = "FILE", conflicts_with = "commands")]
     pub steps_file: Option<PathBuf>,
@@ -150,6 +154,8 @@ pub struct RunArgs {
 
 #[derive(Args, Debug)]
 pub struct WaitArgs {
+    /// Job id or --name
+    #[arg(value_name = "JOB")]
     pub id: String,
     /// Give up after this long (exit 124; the job keeps running)
     #[arg(long = "for", value_name = "DURATION")]
@@ -173,6 +179,8 @@ pub struct WaitArgs {
 #[derive(Args, Debug)]
 pub struct SleepArgs {
     pub duration: String,
+    /// Job id or --name
+    #[arg(value_name = "JOB")]
     pub id: Option<String>,
     #[arg(long)]
     pub json: bool,
@@ -180,6 +188,8 @@ pub struct SleepArgs {
 
 #[derive(Args, Debug)]
 pub struct StatusArgs {
+    /// Job id or --name (default: every job)
+    #[arg(value_name = "JOB")]
     pub id: Option<String>,
     /// Also list every step: done (exit, duration), running, pending or not run
     #[arg(long)]
@@ -190,6 +200,8 @@ pub struct StatusArgs {
 
 #[derive(Args, Debug)]
 pub struct TailArgs {
+    /// Job id or --name
+    #[arg(value_name = "JOB")]
     pub id: String,
     #[arg(short = 'n', default_value_t = 20)]
     pub n: usize,
@@ -203,6 +215,8 @@ pub struct TailArgs {
 
 #[derive(Args, Debug)]
 pub struct StopArgs {
+    /// Job id or --name
+    #[arg(value_name = "JOB")]
     pub id: String,
     #[arg(long, default_value = "5s", value_name = "DURATION")]
     pub grace: String,
@@ -213,6 +227,8 @@ pub struct StopArgs {
 
 #[derive(Args, Debug)]
 pub struct ErrorsArgs {
+    /// Job id or --name
+    #[arg(value_name = "JOB")]
     pub id: String,
     /// Print the matches as one JSON line
     #[arg(long)]
@@ -310,8 +326,15 @@ pub fn to_spec(a: &RunArgs, stdout_tty: bool) -> Result<RunSpec> {
     } else {
         !stdout_tty
     };
+    if let Some(n) = &a.name
+        && let Err(why) = crate::job::names::check_name(n)
+    {
+        bail!("--name {n}: {why}");
+    }
     Ok(RunSpec {
         v: SPEC_VERSION,
+        name: a.name.clone(),
+        replaced: None,
         steps,
         names,
         cwd,

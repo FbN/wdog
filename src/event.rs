@@ -35,6 +35,11 @@ impl DoneReason {
 pub enum Event {
     Start {
         id: String,
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        name: Option<String>,
+        /// id of the finished job with the same name, now removed
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        replaced: Option<String>,
         log: String,
     },
     Env {
@@ -175,10 +180,27 @@ pub fn fmt_bytes(b: u64) -> String {
     }
 }
 
+/// ` name=N replaced=OLD`, the parts that are set.
+pub fn name_part(name: &Option<String>, replaced: &Option<String>) -> String {
+    let mut s = String::new();
+    if let Some(n) = name {
+        s.push_str(&format!(" name={n}"));
+    }
+    if let Some(r) = replaced {
+        s.push_str(&format!(" replaced={r}"));
+    }
+    s
+}
+
 /// Text form. Multi-line for `TAIL`/`HEAD` (header line followed by the raw lines).
 pub fn render_text(e: &Event) -> String {
     let body = match e {
-        Event::Start { id, log } => format!("id={id} log={log}"),
+        Event::Start {
+            id,
+            name,
+            replaced,
+            log,
+        } => format!("id={id}{} log={log}", name_part(name, replaced)),
         Event::Env { file, loaded, .. } => format!("ENV loaded={loaded} file={file}"),
         Event::Step {
             n,

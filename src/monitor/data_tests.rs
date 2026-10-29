@@ -78,3 +78,21 @@ fn step_details_show_state_and_script() {
     assert_eq!(d[2].kind, Kind::Step(StepState::Ok));
     assert_eq!(d[3].kind, Kind::Code);
 }
+
+#[test]
+fn jobs_sorted_by_start_not_by_update() {
+    let at = |id: &str, t: f64| {
+        let mut s = Status::initial(id, Path::new("/x"), 1, "");
+        s.started_at = t;
+        s
+    };
+    let mut v = vec![
+        at("aaaaaa", 10.0),
+        at("cccccc", 30.0),
+        at("bbbbbb", 20.0),
+        at("dddddd", 30.0),
+    ];
+    sort_jobs(&mut v);
+    let ids: Vec<&str> = v.iter().map(|s| s.id.as_str()).collect();
+    assert_eq!(ids, ["cccccc", "dddddd", "bbbbbb", "aaaaaa"]);
+}

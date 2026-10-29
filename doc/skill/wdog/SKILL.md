@@ -55,23 +55,28 @@ EOF
 ### Something that may outlast your tool timeout
 
 ```bash
-wdog start --max 45m -- 'cargo build --release' 'cargo test'
-# -> [wdog] id=3fa91c log=/run/user/1000/wdog/3fa91c/out.log
-wdog wait 3fa91c --for 8m      # repeat while it prints TIMEOUT (exit 124)
+wdog start --name build --max 45m -- 'cargo build --release' 'cargo test'
+wdog wait build --for 8m      # repeat while it prints TIMEOUT (exit 124)
 ```
+
+**Name your jobs** with `--name`: every command that takes an id also takes the name, so you don't
+need to read the id first and can chain `start` and `wait` in one command. Starting again with the
+same name replaces the finished job (it is removed); while the old one still runs, `start` refuses
+(`wdog stop <name>` first). A name used from another directory is refused too: pick another one.
+Names: letters, digits, `.` `_` `-`, not only hex digits (`cafe` looks like an id).
 
 `wait` returns as soon as the job finishes or raises an alert, so the `--for` limit only caps one wait; it doesn't slow you down.
 
 ### Dev server: start, wait until ready, use it, stop it
 
 ```bash
-wdog start -- 'npm run dev'
-wdog wait <id> --port 3000 --for 2m        # or --url http://localhost:3000/health, or --until 'ready in'
+wdog start --name dev -- 'npm run dev'
+wdog wait dev --port 3000 --for 2m        # or --url http://localhost:3000/health, or --until 'ready in'
 # ... run your checks against the server ...
-wdog stop <id>
+wdog stop dev
 ```
 
-If `wait` exits 1 instead of printing `READY`, the server crashed or hit an alert: `wdog tail <id> -n 50`.
+If `wait` exits 1 instead of printing `READY`, the server crashed or hit an alert: `wdog tail dev -n 50`.
 
 ### Load a .env file for the commands
 
@@ -100,7 +105,7 @@ wdog tail <id> -n 100  # last lines of the log
 
 | Line | Meaning | What to do |
 | --- | --- | --- |
-| `id=<id> log=<path>` | job started | keep the id |
+| `id=<id> [name=<n>] [replaced=<old>] log=<path>` | job started (`replaced`: the finished job with that name was removed) | keep the id, or use the name |
 | `ENV loaded=<n> file=<f>` | `.env` file loaded | nothing |
 | `STEP 2/3 OK 88s <cmd or label>` / `STEP 2/3 FAIL exit=1 ...` | a step finished | on `FAIL`, read `ERRORS` and `TAIL` |
 | `STALL 120s cpu=0.0s io=0B pids=3 last="..."` | no output, no CPU, no I/O for that long | likely hung: check `last=`, `wdog tail`; stop and fix (network, lock, waiting on a service) |
@@ -145,6 +150,7 @@ Codes 124–127 can also come from a step itself. The `reason=` on the `DONE` li
 | `--kill-on-stall` | stop the tree on the first `STALL` (exit 126) instead of only alerting |
 | `--keep-going` | run all steps even if one fails |
 | `--steps-file FILE` / `-` | steps from a script (file or stdin heredoc) split at `# -STEP- [label]` lines; replaces the `-- 'cmd'` arguments |
+| `--name NAME` | use NAME in place of the id in `wait`, `tail`, `stop`, ...; reusing it replaces the finished job |
 | `--cwd DIR`, `--env K=V`, `--env-file FILE` | working dir and environment for every step |
 | `--err REGEX` | extra error pattern (repeatable); `--no-default-err` drops the built-ins |
 | `--tail N` / `--head N` | how many output lines to show at the end (default: last 20) |

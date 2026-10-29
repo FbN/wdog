@@ -12,10 +12,32 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph, Row, Table, TableState};
 
 const LEFT_WIDTH: u16 = 46;
+/// The NAME column, when some job has a name.
+const NAME_WIDTH: usize = 14;
+
+/// Pure: the width of the NAME column (0: no job has a name).
+pub fn name_width(jobs: &[Status]) -> usize {
+    let w = jobs
+        .iter()
+        .filter_map(|s| s.name.as_ref())
+        .map(|n| n.chars().count())
+        .max();
+    w.map_or(0, |w| w.clamp(4, NAME_WIDTH))
+}
+
+/// Pure: `name (id)`, or the id.
+pub fn label(st: &Status) -> String {
+    match &st.name {
+        Some(n) => format!("{n} ({})", st.id),
+        None => st.id.clone(),
+    }
+}
 
 pub fn draw(f: &mut Frame, app: &mut App) {
     let [body, foot] = Layout::vertical([Constraint::Min(3), Constraint::Length(1)]).areas(f.area());
-    let left_w = LEFT_WIDTH.min(body.width / 2);
+    let nw = name_width(&app.jobs);
+    let extra = if nw > 0 { nw as u16 + 1 } else { 0 };
+    let left_w = (LEFT_WIDTH + extra).min(body.width / 2);
     let [left, right] = Layout::horizontal([Constraint::Length(left_w), Constraint::Min(10)]).areas(body);
     // borders take one row above and below
     app.page = right.height.saturating_sub(2).max(1) as usize;
@@ -71,24 +93,35 @@ fn status_style(st: &Status) -> Style {
 }
 
 fn draw_jobs(f: &mut Frame, app: &App, area: Rect) {
-    let header = Row::new(["ID", "STATUS", "IDLE", "STEPS", "TIME"]).style(Style::new().bold());
-    let rows = app.jobs.iter().map(|st| {
-        let (idle, run) = times(st, app.now);
-        Row::new(vec![
-            Span::raw(st.id.clone()),
-            Span::styled(status_text(st), status_style(st)),
-            Span::raw(idle),
-            Span::raw(format!("{}/{}", st.step, st.total)),
-            Span::raw(run),
-        ])
-    });
-    let widths = [
-        Constraint::Length(6),
+    let nw = name_width(&app.jobs);
+    let mut head = vec!["ID"];
+    let mut widths = vec![Constraint::Length(6)];
+    if nw > 0 {
+        head.push("NAME");
+        widths.push(Constraint::Length(nw as u16));
+    }
+    head.extend(["STATUS", "IDLE", "STEPS", "TIME"]);
+    widths.extend([
         Constraint::Min(8),
         Constraint::Length(6),
         Constraint::Length(5),
         Constraint::Length(6),
-    ];
+    ]);
+    let header = Row::new(head).style(Style::new().bold());
+    let rows = app.jobs.iter().map(|st| {
+        let (idle, run) = times(st, app.now);
+        let mut cells = vec![Span::raw(st.id.clone())];
+        if nw > 0 {
+            cells.push(Span::raw(st.name.clone().unwrap_or_default()));
+        }
+        cells.extend([
+            Span::styled(status_text(st), status_style(st)),
+            Span::raw(idle),
+            Span::raw(format!("{}/{}", st.step, st.total)),
+            Span::raw(run),
+        ]);
+        Row::new(cells)
+    });
     let t = Table::new(rows, widths)
         .header(header)
         .block(Block::bordered().title(" wdog jobs "))
@@ -123,7 +156,7 @@ fn draw_right(f: &mut Frame, app: &App, area: Rect) {
                 .iter()
                 .map(|l| log_line(l, app.pan))
                 .collect::<Vec<_>>();
-            (format!(" {} output · {where_} ", st.id), lines)
+            (format!(" {} output · {where_} ", label(st)), lines)
         }
         Pane::Steps => {
             let end = (app.scroll + page).min(app.steps.len());
@@ -131,7 +164,7 @@ fn draw_right(f: &mut Frame, app: &App, area: Rect) {
                 .iter()
                 .map(|d| detail_line(d, app.pan))
                 .collect::<Vec<_>>();
-            (format!(" {} steps ", st.id), lines)
+            (format!(" {} steps ", label(st)), lines)
         }
     };
     let p = Paragraph::new(lines).block(Block::bordered().title(title));

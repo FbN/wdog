@@ -14,6 +14,8 @@ pub const FINAL_STATES: [&str; 5] = ["done", "failed", "timeout", "killed", "sto
 pub struct Status {
     pub v: u32,
     pub id: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub name: Option<String>,
     /// starting | running | done | failed | timeout | killed | stopped | lost
     pub state: String,
     pub watcher_pid: i32,
@@ -58,6 +60,7 @@ impl Status {
         Status {
             v: 1,
             id: id.to_string(),
+            name: None,
             state: "starting".into(),
             watcher_pid: 0,
             watcher_start_ticks: 0,
@@ -103,6 +106,7 @@ impl Status {
         Status {
             v: 1,
             id: s.job.id.clone(),
+            name: s.spec.name.clone(),
             state: state.into(),
             watcher_pid: s.job.watcher_pid,
             watcher_start_ticks: s.job.watcher_start_ticks,

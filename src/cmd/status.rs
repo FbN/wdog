@@ -32,6 +32,7 @@ pub fn status_line(st: &Status, now: f64) -> String {
         "-".into()
     };
     let last = st.last_lines.last().cloned().unwrap_or_default();
+    let name = st.name.as_ref().map(|n| format!(" name={n}")).unwrap_or_default();
     let exit = st.exit.map(|e| format!(" exit={e}")).unwrap_or_default();
     let alerts = if st.alerts.is_empty() {
         String::new()
@@ -39,7 +40,7 @@ pub fn status_line(st: &Status, now: f64) -> String {
         format!(" alerts={}", st.alerts.join(","))
     };
     format!(
-        "{:<6} {:<8} {:>6} idle={:<5} step={}/{}{exit}{alerts} last={}",
+        "{:<6} {:<8} {:>6} idle={:<5} step={}/{}{name}{exit}{alerts} last={}",
         st.id,
         st.state,
         runtime,

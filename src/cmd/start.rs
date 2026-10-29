@@ -2,7 +2,7 @@
 
 use crate::cli::{RunArgs, to_spec};
 use crate::console;
-use crate::event::{Event, json_line, parse_json, render_json, render_text};
+use crate::event::{Event, json_line, name_part, parse_json, render_json, render_text};
 use crate::exit::{Exit, WDOG_FAILED};
 use crate::job::dir::{new_job, wdog_home, write_private};
 use crate::job::status::{self, Status};
@@ -15,16 +15,16 @@ pub fn run(a: &RunArgs) -> Result<Exit> {
     if a.stdin_tty {
         bail!("--stdin-tty is not available for start: a background job has no terminal");
     }
-    let spec = to_spec(a, false)?;
+    let mut spec = to_spec(a, false)?;
     let home = wdog_home()?;
     crate::job::gc::maybe_run(&home);
     let paths = new_job(&home)?;
+    crate::job::names::apply(&home, &paths, &mut spec)?;
     write_private(&paths.spec, &serde_json::to_vec(&spec)?)?;
     let log = spec.log.clone().unwrap_or_else(|| paths.log.clone());
-    status::write_atomic(
-        &paths.status,
-        &Status::initial(&paths.id, &log, spec.steps.len(), &spec.step_name(0)),
-    )?;
+    let mut first = Status::initial(&paths.id, &log, spec.steps.len(), &spec.step_name(0));
+    first.name = spec.name.clone();
+    status::write_atomic(&paths.status, &first)?;
     let exe = std::env::current_exe().context("cannot find the wdog binary")?;
     let mut c = Command::new(exe);
     c.arg("__supervise")
@@ -45,14 +45,20 @@ pub fn run(a: &RunArgs) -> Result<Exit> {
     let id_line = |starting: bool| {
         if a.json {
             let mut j = serde_json::json!({ "id": paths.id, "log": log.display().to_string() });
+            if let Some(n) = &spec.name {
+                j["name"] = n.as_str().into();
+            }
+            if let Some(r) = &spec.replaced {
+                j["replaced"] = r.as_str().into();
+            }
             if starting {
                 j["state"] = "starting".into();
             }
             json_line("START", j, SystemTime::now())
-        } else if starting {
-            format!("[wdog] id={} log={} state=starting", paths.id, log.display())
         } else {
-            format!("[wdog] id={} log={}", paths.id, log.display())
+            let names = name_part(&spec.name, &spec.replaced);
+            let st = if starting { " state=starting" } else { "" };
+            format!("[wdog] id={}{names} log={}{st}", paths.id, log.display())
         }
     };
     let show = |e: &Event| {

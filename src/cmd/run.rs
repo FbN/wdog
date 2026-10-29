@@ -11,12 +11,13 @@ use anyhow::{Result, bail};
 pub fn run(a: &RunArgs) -> Result<Exit> {
     // SAFETY: isatty has no preconditions.
     let stdout_tty = unsafe { nix::libc::isatty(1) == 1 };
-    let spec = to_spec(a, stdout_tty)?;
+    let mut spec = to_spec(a, stdout_tty)?;
     if spec.stdin_tty && !in_tty_foreground() {
         bail!("--stdin-tty needs wdog in the terminal foreground");
     }
     let home = wdog_home()?;
     crate::job::gc::maybe_run(&home);
     let paths = new_job(&home)?;
+    crate::job::names::apply(&home, &paths, &mut spec)?;
     run_job(&paths, spec, Mode::Foreground, Sink::Console)
 }

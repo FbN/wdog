@@ -104,14 +104,21 @@ pub fn valid_id(id: &str) -> bool {
     !id.is_empty() && id.len() <= 16 && id.chars().all(|c| c.is_ascii_hexdigit())
 }
 
-/// An existing job.
-pub fn job(home: &Path, id: &str) -> Result<JobPaths> {
-    if !valid_id(id) {
-        bail!("bad job id '{id}'");
-    }
-    let p = JobPaths::new(home, id);
+/// An existing job, by id or by `--name`.
+pub fn job(home: &Path, key: &str) -> Result<JobPaths> {
+    let id = if valid_id(key) {
+        key.to_string()
+    } else if super::names::valid_name(key) {
+        match super::names::resolve(home, key) {
+            Some(id) => id,
+            None => bail!("no job named '{key}'"),
+        }
+    } else {
+        bail!("bad job id or name '{key}'");
+    };
+    let p = JobPaths::new(home, &id);
     if !p.dir.is_dir() {
-        bail!("no such job '{id}'");
+        bail!("no such job '{key}'");
     }
     Ok(p)
 }

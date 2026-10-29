@@ -56,6 +56,7 @@ rustup target add x86_64-unknown-linux-musl
 ```bash
 wdog run   [opts] -- 'cmd1' ['cmd2' ...]   # foreground, returns when done
 wdog start [opts] -- 'cmd1' ['cmd2' ...]   # background, prints [wdog] id=<id> log=<path>
+wdog start --name test -- 'cargo test'    # then: wdog wait test, wdog tail test, ...
 wdog run|start [opts] --steps-file FILE|-  # steps from a script, see below
 wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH] [--json]
 wdog sleep 30s [<id>] [--json]
@@ -67,10 +68,27 @@ wdog gc [--json]
 wdog monitor                            # live view of all jobs, like top
 ```
 
-Options for `run` and `start`: `--steps-file`, `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,
+Options for `run` and `start`: `--name`, `--steps-file`, `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,
 `--head N`, `--quiet`, `--live`, `--stall`, `--err REGEX`, `--no-default-err`, `--max`,
 `--kill-on-stall`, `--keep-going`, `--json`, `--stdin-tty`, `--interval`, `--busy`, `--silence`, `--retry N`.
 Durations: `45`, `45s`, `30m`, `2h`, `200ms`.
+
+### Job names
+
+`--name NAME` (on `run` and `start`) gives a job a name that every other command accepts in place of
+its id, so scripts and agents never need to read the id back:
+
+```bash
+wdog start --name test -- 'cargo test' && wdog wait test --for 5m
+```
+
+- Starting a job with the name of a **finished** job replaces it: the old job is removed and the
+  start line says `name=test replaced=<old id>`.
+- While the old job still **runs**, `start` refuses (exit 125): `wdog stop test` first.
+- The name belongs to the directory the job ran in (`--cwd`, or the current one). A job from
+  another directory can't take it, so two projects using `--name test` don't remove each other's jobs.
+- Names use letters, digits, `.`, `_` and `-` (up to 32), and can't be only hex digits, which would
+  look like an id.
 
 ### Steps from a script
 
@@ -99,7 +117,8 @@ EOF
 
 ### Watching jobs live
 
-`wdog monitor` is a full-screen view of all jobs for humans, like `top`. On the left, one row per job: id,
+`wdog monitor` is a full-screen view of all jobs for humans, like `top`. On the left, one row per job, newest
+start first: id, name,
 state (with alerts such as `STALL`, coloured), idle time, step and run time. On the right, the output
 of the selected job, following new lines.
 

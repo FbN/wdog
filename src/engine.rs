@@ -154,6 +154,8 @@ pub fn run_job(paths: &JobPaths, spec: RunSpec, mode: Mode, sink: Sink) -> Resul
     io.write_status(&Status::from_state(&state, started));
     io.emit(&Event::Start {
         id: paths.id.clone(),
+        name: spec.name.clone(),
+        replaced: spec.replaced.clone(),
         log: log_path.display().to_string(),
     });
 

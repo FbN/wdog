@@ -41,13 +41,25 @@ pub struct Detail {
     pub text: String,
 }
 
-/// Every job, newest first; a live job whose watcher is gone shows as `lost`.
+/// Every job, newest start first; a live job whose watcher is gone shows as `lost`.
 pub fn jobs(home: &Path) -> Vec<Status> {
-    list_jobs(home)
+    let mut v: Vec<Status> = list_jobs(home)
         .into_iter()
         .filter_map(|(id, _)| status::read(&JobPaths::new(home, &id).status).ok())
         .map(effective)
-        .collect()
+        .collect();
+    sort_jobs(&mut v);
+    v
+}
+
+/// Pure: by start time, newest first. Unlike the status file's mtime, this does
+/// not change while a job runs, so rows stay where they are.
+pub fn sort_jobs(v: &mut [Status]) {
+    v.sort_by(|a, b| {
+        b.started_at
+            .total_cmp(&a.started_at)
+            .then_with(|| a.id.cmp(&b.id))
+    });
 }
 
 pub fn log_len(path: &Path) -> u64 {

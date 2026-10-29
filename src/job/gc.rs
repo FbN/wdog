@@ -38,6 +38,7 @@ pub fn run(home: &Path) -> usize {
             n += 1;
         }
     }
+    super::names::prune(home);
     n
 }
 

@@ -110,7 +110,8 @@ Priorities: **Must** for the first version, **Should** soon after, **Could** if 
 | BG-5 | `wdog errors <id>` lists error-pattern matches with log line numbers. | Should |
 | BG-6 | Job directories older than 24 hours are cleaned up on the next `wdog` call; `wdog gc` does it on demand. | Should |
 | BG-7 | Job directories live in `$WDOG_HOME/<id>/`. `WDOG_HOME` defaults to `$XDG_RUNTIME_DIR/wdog`, or `/tmp/wdog-$UID` when `XDG_RUNTIME_DIR` is unset, so users never share it. It is created with mode `0700`; `wdog` refuses to use it (exit 125) if it is a symlink, owned by another user, or writable by group or others. | Must |
-| BG-8 | `wdog monitor` is a live full-screen view for humans, like `top`. On the left, one row per job (newest first): id, state with any alerts of a live job, idle time, current step, run time; alerts are coloured. On the right, the selected job's output, following new lines (`PgUp`/`PgDn` scroll and pause following, `Home` goes to the top, `End` follows again, `←`/`→` pan long lines); `o` switches it to the job's steps (state, exit code, duration and script of each). `↑`/`↓` pick a job, `q`, `Esc` or Ctrl-C quit. It refreshes twice a second, only reads job files, and never changes a job. Escape sequences and control characters in the output are removed before display. Without a terminal it exits 125 with an `ERROR` line. | Could |
+| BG-8 | `wdog monitor` is a live full-screen view for humans, like `top`. On the left, one row per job (newest start first, so rows don't move while jobs run): id, name, state with any alerts of a live job, idle time, current step, run time; alerts are coloured. On the right, the selected job's output, following new lines (`PgUp`/`PgDn` scroll and pause following, `Home` goes to the top, `End` follows again, `←`/`→` pan long lines); `o` switches it to the job's steps (state, exit code, duration and script of each). `↑`/`↓` pick a job, `q`, `Esc` or Ctrl-C quit. It refreshes twice a second, only reads job files, and never changes a job. Escape sequences and control characters in the output are removed before display. Without a terminal it exits 125 with an `ERROR` line. | Could |
+| BG-9 | `--name NAME` on `run` and `start` names the job; every command that takes a job id also takes its name. Names use letters, digits, `.`, `_`, `-` (1–32, not starting with `.` or `-`) and cannot be only hex digits. A name belongs to the directory the job runs in (`--cwd`, or the current one). Starting a job whose name points to a finished (or lost) job started in the same directory removes that job and takes the name; the start line shows `name=<n> replaced=<old id>`. If the job still runs, or was started in another directory, `start` and `run` exit 125 with an `ERROR` line. `status` shows `name=`, and `status.json` has `"name"`. | Should |
 
 ## 5. Interface, output and exit codes
 
@@ -119,6 +120,7 @@ Priorities: **Must** for the first version, **Should** soon after, **Could** if 
 ```bash
 wdog run   [opts] -- 'cmd1' ['cmd2' ...]   # foreground, returns when done
 wdog start [opts] -- 'cmd1' ['cmd2' ...]   # background, prints <id>
+wdog start --name NAME ...                 # then use NAME in place of <id>
 wdog run|start [opts] --steps-file FILE|-  # steps from a script split at '# -STEP-' lines
 wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH]
 wdog sleep 30s [<id>]
@@ -130,7 +132,7 @@ wdog gc
 wdog monitor                             # live view of all jobs (humans)
 ```
 
-Shared options: `--cwd`, `--env`, `--env-file`, `--log`, `--tail`, `--head`, `--quiet`, `--live`, `--stall`, `--err`, `--no-default-err`, `--max`, `--kill-on-stall`, `--keep-going`, `--json`. Durations accept `s`, `m`, `h`; a bare number means seconds.
+Shared options: `--name`, `--cwd`, `--env`, `--env-file`, `--log`, `--tail`, `--head`, `--quiet`, `--live`, `--stall`, `--err`, `--no-default-err`, `--max`, `--kill-on-stall`, `--keep-going`, `--json`. Durations accept `s`, `m`, `h`; a bare number means seconds.
 
 ### 5.2 Output format
 
