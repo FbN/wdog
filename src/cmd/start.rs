@@ -23,7 +23,7 @@ pub fn run(a: &RunArgs) -> Result<Exit> {
     let log = spec.log.clone().unwrap_or_else(|| paths.log.clone());
     status::write_atomic(
         &paths.status,
-        &Status::initial(&paths.id, &log, spec.steps.len(), &spec.steps[0]),
+        &Status::initial(&paths.id, &log, spec.steps.len(), &spec.step_name(0)),
     )?;
     let exe = std::env::current_exe().context("cannot find the wdog binary")?;
     let mut c = Command::new(exe);

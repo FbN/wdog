@@ -115,7 +115,7 @@ impl Status {
             ended_at: s.finished.then(|| wall(now)),
             step: step + 1,
             total: s.total(),
-            step_cmd: s.spec.steps.get(step).cloned().unwrap_or_default(),
+            step_cmd: s.spec.step_name(step),
             last_lines: lines,
             alerts: s.alerts(),
             exit,

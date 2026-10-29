@@ -173,7 +173,8 @@ fn read_rows(p: &JobPaths, st: &Status) -> Option<Vec<StepRow>> {
     let spec: RunSpec = serde_json::from_slice(&std::fs::read(&p.spec).ok()?).ok()?;
     let text = std::fs::read_to_string(&p.events).unwrap_or_default();
     let events: Vec<Event> = text.lines().filter_map(parse_json).collect();
-    Some(step_rows(&spec.steps, &events, st))
+    let names: Vec<String> = (0..spec.steps.len()).map(|i| spec.step_name(i)).collect();
+    Some(step_rows(&names, &events, st))
 }
 
 pub fn run(id: Option<&str>, steps: bool, json: bool) -> Result<Exit> {

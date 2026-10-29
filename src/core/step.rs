@@ -397,7 +397,7 @@ fn complete_step(s: &mut State, now: Instant, fx: &mut Vec<Effect>) {
             ok: code == 0,
             exit: code,
             dur,
-            cmd: s.spec.steps[s.step].clone(),
+            cmd: s.spec.step_name(s.step),
         },
     );
     reset_step_detectors(s);

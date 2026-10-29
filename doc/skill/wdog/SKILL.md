@@ -26,7 +26,7 @@ Plain shell is fine for quick commands (`ls`, `git status`, `cat`, a single fast
 4. **Never answer a `PROMPT`.** Rerun non-interactively instead (`-y`, `--yes`, `--non-interactive`, `CI=1`, `GIT_EDITOR=true`, `DEBIAN_FRONTEND=noninteractive`).
 5. **Stay under your tool timeout.** If your shell tool has a time limit (often 2–10 minutes), don't `wdog run` something that may outlast it. Use `wdog start`, then `wdog wait <id> --for <less than the limit>`, and repeat the wait.
 6. **Clean up.** `wdog stop <id>` for every background job you started and no longer need. `wdog status` lists them.
-7. **Quote each step as one argument** after `--`: `wdog run -- 'npm ci' 'npm test'`. Each step runs in `/bin/sh -c`; steps stop at the first failure.
+7. **Quote each step as one argument** after `--`: `wdog run -- 'npm ci' 'npm test'`. Each step runs in `/bin/sh -c`; steps stop at the first failure. If steps need quotes, `$` or several lines, use `--steps-file -` with a quoted heredoc instead (recipe below).
 
 ## Recipes
 
@@ -37,6 +37,20 @@ wdog run -- 'npm ci' 'npm run build' 'npm test'
 ```
 
 Output for agents is quiet by default: only `[wdog]` lines, an error summary and the last 20 lines. Need more? `wdog tail <id> -n 200` (the id is on the first line).
+
+### Many or complex steps: a script, no quoting
+
+```bash
+wdog run --steps-file - <<'EOF'
+cd services/api
+# -STEP- install
+npm ci
+# -STEP- test
+npm test -- --grep 'api "v2"'
+EOF
+```
+
+`# -STEP- <label>` lines split the script; the label is what `STEP` lines and `status --steps` show. Text before the first marker runs at the start of every step. Each step has `set -e`, so any failing line fails it. Works with `wdog start` too.
 
 ### Something that may outlast your tool timeout
 
@@ -88,7 +102,7 @@ wdog tail <id> -n 100  # last lines of the log
 | --- | --- | --- |
 | `id=<id> log=<path>` | job started | keep the id |
 | `ENV loaded=<n> file=<f>` | `.env` file loaded | nothing |
-| `STEP 2/3 OK 88s <cmd>` / `STEP 2/3 FAIL exit=1 ...` | a step finished | on `FAIL`, read `ERRORS` and `TAIL` |
+| `STEP 2/3 OK 88s <cmd or label>` / `STEP 2/3 FAIL exit=1 ...` | a step finished | on `FAIL`, read `ERRORS` and `TAIL` |
 | `STALL 120s cpu=0.0s io=0B pids=3 last="..."` | no output, no CPU, no I/O for that long | likely hung: check `last=`, `wdog tail`; stop and fix (network, lock, waiting on a service) |
 | `RESUMED after 151s` | activity came back after a stall | keep waiting |
 | `PROMPT line="Continue? [y/N]" via=text` | the command waits for input (`via=tty`: blocked reading the terminal) | stop it, rerun non-interactively (rule 4) |
@@ -128,6 +142,7 @@ Codes 124–127 can also come from a step itself. The `reason=` on the `DONE` li
 | `--stall 300` | seconds of total inactivity before `STALL` (default 120). Raise it for steps that legitimately go quiet (big `docker build` layers, long compiles without output) |
 | `--kill-on-stall` | stop the tree on the first `STALL` (exit 126) instead of only alerting |
 | `--keep-going` | run all steps even if one fails |
+| `--steps-file FILE` / `-` | steps from a script (file or stdin heredoc) split at `# -STEP- [label]` lines; replaces the `-- 'cmd'` arguments |
 | `--cwd DIR`, `--env K=V`, `--env-file FILE` | working dir and environment for every step |
 | `--err REGEX` | extra error pattern (repeatable); `--no-default-err` drops the built-ins |
 | `--tail N` / `--head N` | how many output lines to show at the end (default: last 20) |
@@ -142,6 +157,7 @@ Codes 124–127 can also come from a step itself. The `reason=` on the `DONE` li
 
 - **stdin is closed** by default: a command that asks for input fails fast instead of hanging. Pass flags like `--yes` up front.
 - **Background processes die with `wdog run`.** Something a step starts in the background keeps running during the run, but usually dies once `wdog run` returns (its output pipe closes). Use `wdog start` for anything that must keep running.
+- **`--steps-file` steps are separate shells.** Only the prelude (text before the first `# -STEP-`) is shared, copied into each step; a `cd` or `export` inside one step does not reach the next. A marker line inside a heredoc body within a step still splits it.
 - **Port already in use:** `wait --port` only checks that something accepts connections. If an old server holds the port, `READY` can be a false positive; check `wdog status` and stop old jobs first.
 - **Jobs are per user** and kept 24 h (`wdog gc` cleans up now). Logs live under `$WDOG_HOME/<id>/out.log`.
 - If the watcher is killed (for example by your tool's timeout), its guard cleans up the tree and the job shows `lost`. Rerun with `wdog start`.

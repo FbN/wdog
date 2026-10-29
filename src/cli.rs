@@ -109,8 +109,16 @@ pub struct RunArgs {
     pub prompt_grace: String,
     #[arg(long, default_value = "5s", hide = true)]
     pub orphan_grace: String,
+    /// Read the steps from a script, `-` for stdin; `# -STEP- [label]` lines split it
+    #[arg(long, value_name = "FILE", conflicts_with = "commands")]
+    pub steps_file: Option<PathBuf>,
     /// Steps, each one shell command, after `--`
-    #[arg(last = true, required = true, num_args = 1.., value_name = "CMD")]
+    #[arg(
+        last = true,
+        required_unless_present = "steps_file",
+        num_args = 1..,
+        value_name = "CMD"
+    )]
     pub commands: Vec<String>,
 }
 
@@ -265,6 +273,10 @@ pub fn to_spec(a: &RunArgs, stdout_tty: bool) -> Result<RunSpec> {
     if interval < std::time::Duration::from_millis(50) {
         bail!("--interval must be at least 50ms");
     }
+    let (steps, names) = match &a.steps_file {
+        None => (a.commands.clone(), vec![]),
+        Some(f) => read_steps_file(&here, f, a.stdin_tty)?,
+    };
     let quiet = if a.quiet {
         true
     } else if a.live {
@@ -274,7 +286,8 @@ pub fn to_spec(a: &RunArgs, stdout_tty: bool) -> Result<RunSpec> {
     };
     Ok(RunSpec {
         v: SPEC_VERSION,
-        steps: a.commands.clone(),
+        steps,
+        names,
         cwd,
         env,
         env_files,
@@ -294,6 +307,30 @@ pub fn to_spec(a: &RunArgs, stdout_tty: bool) -> Result<RunSpec> {
         stdin_tty: a.stdin_tty,
         retry: a.retry,
     })
+}
+
+/// `--steps-file FILE|-`: (scripts, names). With `-` the steps get /dev/null as stdin.
+fn read_steps_file(here: &Path, f: &Path, stdin_tty: bool) -> Result<(Vec<String>, Vec<String>)> {
+    use std::io::Read;
+    let text = if f == Path::new("-") {
+        if stdin_tty {
+            bail!("--steps-file - reads stdin: it cannot be used with --stdin-tty");
+        }
+        // SAFETY: isatty has no preconditions.
+        if unsafe { nix::libc::isatty(0) == 1 } {
+            bail!("--steps-file -: stdin is a terminal; pipe the script in, e.g. <<'EOF'");
+        }
+        let mut s = String::new();
+        std::io::stdin()
+            .read_to_string(&mut s)
+            .context("--steps-file -: cannot read stdin")?;
+        s
+    } else {
+        let p = absolute(here, f);
+        std::fs::read_to_string(&p).with_context(|| format!("--steps-file {}: cannot read", p.display()))?
+    };
+    let steps = crate::stepfile::parse(&text)?;
+    Ok(steps.into_iter().map(|s| (s.script, s.name)).unzip())
 }
 
 #[cfg(test)]

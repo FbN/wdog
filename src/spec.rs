@@ -27,6 +27,9 @@ pub struct OutputMode {
 pub struct RunSpec {
     pub v: u32,
     pub steps: Vec<String>,
+    /// Short names for output (`--steps-file`); empty: the command itself is the name.
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub names: Vec<String>,
     pub cwd: Option<PathBuf>,
     pub env: Vec<(String, String)>,
     /// Absolute paths only; values are never stored.
@@ -56,12 +59,22 @@ pub struct RunSpec {
 }
 
 impl RunSpec {
+    /// What output shows for step `i` (0-based): its name, or else its command.
+    pub fn step_name(&self, i: usize) -> String {
+        self.names
+            .get(i)
+            .or_else(|| self.steps.get(i))
+            .cloned()
+            .unwrap_or_default()
+    }
+
     /// A spec with defaults, for tests.
     #[cfg(test)]
     pub fn new(steps: Vec<String>) -> RunSpec {
         RunSpec {
             v: SPEC_VERSION,
             steps,
+            names: vec![],
             cwd: None,
             env: vec![],
             env_files: vec![],

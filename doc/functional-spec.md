@@ -63,6 +63,7 @@ Priorities: **Must** for the first version, **Should** soon after, **Could** if 
 | EX-7 | `--max DURATION` (e.g. `30m`) stops the whole tree after a total time limit. | Must |
 | EX-8 | `--retry N` re-runs a failed step up to N times. | Could |
 | EX-9 | `--env-file FILE` (repeatable) loads a `.env` file into the environment of every step, as `set -a && . FILE && set +a` would. The file is sourced once per run by `/bin/sh`; later files override earlier ones and `--env K=V` overrides both. The variables exist only in the steps' environment: the caller's shell is not changed, and values are never written to the console, the log or the job files (`.env` files often hold secrets). A file that is missing or fails to load stops the run before the first step (exit 125). | Should |
+| EX-10 | `--steps-file FILE` (`-` = stdin, e.g. a quoted heredoc `<<'EOF'`) reads the steps from a shell script instead of `--` arguments, so they need no quoting. Lines that are exactly `# -STEP-` (optionally followed by a label) split the script into steps; without such lines the whole script is one step. Text before the first marker is a prelude copied to the start of every step (each step is still its own `/bin/sh`, so `cd` and variables do not carry over otherwise). Every step starts with `set -e`, so any failing command fails the step; `set +e` in the prelude turns this off. Output shows the label, or the step's first command followed by `…`. With `-` the steps' stdin is `/dev/null`, and `--stdin-tty` is refused. An empty script or an empty step stops the run before the first step (exit 125). | Should |
 
 ### 4.2 Logging and output capture
 
@@ -116,6 +117,7 @@ Priorities: **Must** for the first version, **Should** soon after, **Could** if 
 ```bash
 wdog run   [opts] -- 'cmd1' ['cmd2' ...]   # foreground, returns when done
 wdog start [opts] -- 'cmd1' ['cmd2' ...]   # background, prints <id>
+wdog run|start [opts] --steps-file FILE|-  # steps from a script split at '# -STEP-' lines
 wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH]
 wdog sleep 30s [<id>]
 wdog status [<id>] [--steps]

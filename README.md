@@ -56,6 +56,7 @@ rustup target add x86_64-unknown-linux-musl
 ```bash
 wdog run   [opts] -- 'cmd1' ['cmd2' ...]   # foreground, returns when done
 wdog start [opts] -- 'cmd1' ['cmd2' ...]   # background, prints [wdog] id=<id> log=<path>
+wdog run|start [opts] --steps-file FILE|-  # steps from a script, see below
 wdog wait  <id> [--for 2m] [--until RE] [--port N] [--url URL] [--file PATH] [--json]
 wdog sleep 30s [<id>] [--json]
 wdog status [<id>] [--steps] [--json]   # --steps: one line per step
@@ -65,10 +66,35 @@ wdog stop  <id> [--grace 5s] [--json]
 wdog gc [--json]
 ```
 
-Options for `run` and `start`: `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,
+Options for `run` and `start`: `--steps-file`, `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,
 `--head N`, `--quiet`, `--live`, `--stall`, `--err REGEX`, `--no-default-err`, `--max`,
 `--kill-on-stall`, `--keep-going`, `--json`, `--stdin-tty`, `--interval`, `--busy`, `--retry N`.
 Durations: `45`, `45s`, `30m`, `2h`, `200ms`.
+
+### Steps from a script
+
+`--steps-file FILE` (or `-` for stdin) takes a normal shell script, split into steps at
+`# -STEP- [label]` lines. Nothing needs quoting, and loops or multi-line commands work:
+
+```bash
+wdog run --stall 2m --steps-file - <<'EOF'
+cd services/api
+# -STEP- install
+npm ci
+# -STEP- db
+docker compose up -d db
+for i in $(seq 30); do pg_isready -h localhost && break; sleep 1; done
+# -STEP- test
+npm test -- --grep 'api "v2"'
+EOF
+```
+
+- Text before the first marker (`cd services/api` above) is copied to the start of every step.
+  Each step is still its own `/bin/sh`.
+- Every step runs with `set -e`: any failing command fails the step. Put `set +e` in the prelude
+  to turn that off.
+- Output shows the label (`STEP 2/3 OK 4s  db`), or the step's first command plus `…`.
+- No marker: the whole script is one step. With `-`, the steps' stdin is `/dev/null`.
 
 ## Output
 

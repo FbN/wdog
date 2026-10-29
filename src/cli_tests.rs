@@ -111,3 +111,25 @@ fn env_file_resolved_against_cwd() {
     assert_eq!(s.env_files, vec![d.path().join(".env")]);
     assert!(s.env_files[0].is_absolute());
 }
+
+#[test]
+fn steps_file_from_a_file() {
+    let d = tempfile::tempdir().unwrap();
+    let f = d.path().join("steps.sh");
+    std::fs::write(&f, "cd /\n# -STEP- a\ntrue\n# -STEP-\necho b\n").unwrap();
+    let s = to_spec(&run_args(&["run", "--steps-file", f.to_str().unwrap()]), false).unwrap();
+    assert_eq!(s.steps, vec!["set -e\ncd /\ntrue\n", "set -e\ncd /\necho b\n"]);
+    assert_eq!(s.names, vec!["a", "echo b"]);
+    assert_eq!(s.step_name(1), "echo b");
+}
+
+#[test]
+fn steps_file_conflicts() {
+    assert!(parse(&["run", "--steps-file", "x", "--", "cmd"]).is_err());
+    assert!(parse(&["run", "--steps-file", "x"]).is_ok());
+    assert!(parse(&["run"]).is_err());
+    let e = to_spec(&run_args(&["run", "--steps-file", "/no/such/file"]), false).unwrap_err();
+    assert!(format!("{e:#}").contains("cannot read"), "{e:#}");
+    let e = to_spec(&run_args(&["run", "--stdin-tty", "--steps-file", "-"]), false).unwrap_err();
+    assert!(e.to_string().contains("--stdin-tty"), "{e}");
+}

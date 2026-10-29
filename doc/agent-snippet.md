@@ -1,5 +1,6 @@
 ## Long-running commands: use `wdog`
 - Wrap any command that may take > 30 s: `wdog run -- 'npm ci' 'npm test'` (quiet for agents: only `[wdog]` lines and the last 20 lines; `wdog tail <id> -n 100` for more).
+- Many steps, or steps with quotes or loops: `wdog run --steps-file - <<'EOF'` with a script split by `# -STEP- <label>` lines (each step runs with `set -e`).
 - Need a `.env` file? Add `--env-file .env.development` instead of `set -a && . ./.env && set +a`.
 - Servers and watchers: `wdog start -- 'npm run dev'` (prints `[wdog] id=<id> ...`), then `wdog wait <id> --port 3000 --for 2m`.
 - Never write `> log 2>&1 &`, `sleep N; tail`, or `kill -0` loops; use `wdog start`, `wdog wait`, `wdog tail <id> -n 50`.

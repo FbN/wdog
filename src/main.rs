@@ -15,6 +15,7 @@ mod lines;
 mod proc;
 mod rt;
 mod spec;
+mod stepfile;
 
 use clap::Parser;
 use cli::{Cli, Cmd};

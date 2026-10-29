@@ -29,3 +29,13 @@ fn serde_round_trip() {
     let back: RunSpec = serde_json::from_str(&j).unwrap();
     assert_eq!(back, s);
 }
+
+#[test]
+fn step_names_fall_back_to_commands() {
+    let mut s = RunSpec::new(vec!["true".into(), "echo hi".into()]);
+    assert_eq!(s.step_name(1), "echo hi");
+    assert!(!serde_json::to_string(&s).unwrap().contains("names"));
+    s.names = vec!["t".into(), "greet".into()];
+    assert_eq!(s.step_name(1), "greet");
+    assert_eq!(s.step_name(5), "");
+}
