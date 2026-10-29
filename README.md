@@ -9,6 +9,37 @@ run looks wrong: no progress (`STALL`), waiting for input (`PROMPT`), leftover p
 Spec: [`doc/functional-spec.md`](doc/functional-spec.md). Plan: [`doc/plan/`](doc/plan/00-overview.md).
 Agent skill: [`doc/skill/wdog/SKILL.md`](doc/skill/wdog/SKILL.md).
 
+## Quick start
+
+Hand wdog a plain shell script on stdin. `# -STEP- label` lines split it into steps; nothing
+needs quoting:
+
+```bash
+wdog run --stall 2m --steps-file - <<'EOF'
+# -STEP- install
+npm ci
+# -STEP- build
+npm run build
+# -STEP- test
+npm test -- --grep 'api "v2"'
+EOF
+```
+
+```
+[wdog] id=a7f3c1 log=/run/user/1000/wdog/a7f3c1/out.log
+[wdog] STEP 1/3 OK   41s  install
+[wdog] STEP 2/3 OK   1m28s  build
+[wdog] STALL 2m00s cpu=0.0s io=0B pids=3 last="Running 214 tests"
+[wdog] STEP 3/3 FAIL exit=1 1m52s  test
+[wdog] ERRORS 2: log:842 "FAIL src/api.test.js" | log:851 "Expected 200, received 500"
+[wdog] DONE exit=1 reason=step_failed 4m01s
+```
+
+Use `start --name test` instead of `run` to send it to the background, then `wdog wait test`,
+`wdog tail test`, or watch every job with `wdog monitor`:
+
+![wdog monitor](doc/img/monitor.png)
+
 ## Install
 
 Linux only (reads `/proc`). No root needed. Needs Rust 1.85 or newer.
@@ -120,7 +151,7 @@ EOF
 `wdog monitor` is a full-screen view of all jobs for humans, like `top`. On the left, one row per job, newest
 start first: id, name,
 state (with alerts such as `STALL`, coloured), idle time, step and run time. On the right, the output
-of the selected job, following new lines.
+of the selected job, following new lines (screenshot in [Quick start](#quick-start)).
 
 | Key | Action |
 | --- | --- |
