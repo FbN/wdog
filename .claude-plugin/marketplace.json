@@ -1,0 +1,15 @@
+{
+  "name": "wdog",
+  "description": "wdog: watchdog runner for long shell commands, built for coding agents",
+  "owner": {
+    "name": "Fabiano Taioli",
+    "email": "ftaioli@gmail.com"
+  },
+  "plugins": [
+    {
+      "name": "wdog",
+      "source": "./plugin",
+      "description": "Run long shell commands under the wdog watchdog"
+    }
+  ]
+}

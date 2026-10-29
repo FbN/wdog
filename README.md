@@ -7,7 +7,8 @@ run looks wrong: no progress (`STALL`), waiting for input (`PROMPT`), leftover p
 `> log 2>&1 &`, `sleep; tail`, `kill -0` plumbing with `start`, `wait`, `status` and `stop`.
 
 Spec: [`doc/functional-spec.md`](doc/functional-spec.md).
-Agent skill: [`doc/skill/wdog/SKILL.md`](doc/skill/wdog/SKILL.md).
+Agent skill: [`plugin/skills/wdog/SKILL.md`](plugin/skills/wdog/SKILL.md), also packaged as a
+[Claude Code plugin](#claude-code-plugin).
 
 ## Quick start
 
@@ -220,7 +221,17 @@ A step can exit 124–127 itself, so read the last `[wdog]` line: `DONE exit=<n>
 ## Agent snippet
 
 See [`doc/agent-snippet.md`](doc/agent-snippet.md) for a 10-line block to paste into your agent's instructions file, or install
-the skill by copying `doc/skill/wdog/` into your agent's skills folder.
+the skill by copying `plugin/skills/wdog/` into your agent's skills folder.
+
+### Claude Code plugin
+
+The skill is also a Claude Code plugin. Install it from inside Claude Code:
+
+```
+/plugin install wdog --marketplace FbN/wdog
+```
+
+The plugin only adds the skill; install the `wdog` command as shown in [Install](#install).
 
 ## Limits
 

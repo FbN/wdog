@@ -18,6 +18,10 @@ Use `wdog` for:
 
 Plain shell is fine for quick commands (`ls`, `git status`, `cat`, a single fast `grep`).
 
+If `wdog` is not installed (`command not found`), don't install it yourself: tell the user and
+suggest `cargo binstall wdog` (prebuilt static binary) or `cargo install wdog --features https`.
+It runs on Linux only. Until then, run the command without wdog.
+
 ## Golden rules
 
 1. **Wrap, don't background by hand.** Never write `cmd > log 2>&1 &`, `nohup`, `sleep 60; tail log`, `while kill -0 ...`. Use `wdog start` and `wdog wait`.
