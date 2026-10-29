@@ -126,6 +126,9 @@ pub struct RunArgs {
     /// Alert after this long of CPU use with no output (off by default)
     #[arg(long, value_name = "DURATION")]
     pub busy: Option<String>,
+    /// Alert after this long with no output, even if CPU or I/O move (off by default)
+    #[arg(long, value_name = "DURATION")]
+    pub silence: Option<String>,
     /// Rerun a failed step up to N times
     #[arg(long, default_value_t = 0, value_name = "N")]
     pub retry: u32,
@@ -321,6 +324,7 @@ pub fn to_spec(a: &RunArgs, stdout_tty: bool) -> Result<RunSpec> {
         prompt_grace: dur("prompt-grace", &a.prompt_grace)?,
         orphan_grace: dur("orphan-grace", &a.orphan_grace)?,
         busy: a.busy.as_deref().map(|b| dur("busy", b)).transpose()?,
+        silence: a.silence.as_deref().map(|d| dur("silence", d)).transpose()?,
         err_patterns: merge_patterns(&a.err, a.no_default_err),
         max: a.max.as_deref().map(|m| dur("max", m)).transpose()?,
         kill_on_stall: a.kill_on_stall,

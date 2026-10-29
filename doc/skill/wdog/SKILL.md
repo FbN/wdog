@@ -22,7 +22,7 @@ Plain shell is fine for quick commands (`ls`, `git status`, `cat`, a single fast
 
 1. **Wrap, don't background by hand.** Never write `cmd > log 2>&1 &`, `nohup`, `sleep 60; tail log`, `while kill -0 ...`. Use `wdog start` and `wdog wait`.
 2. **Read the last `[wdog]` line, not just the exit code.** A step's own exit code can collide with wdog's codes (124–127). The last line says what happened: `DONE exit=<n> reason=<r>`, `ERROR <msg>`, or an alert.
-3. **An alert means: stop waiting and look.** `STALL`, `PROMPT`, `ORPHANS`, `ERROR_LIVE`, `LOST` end `wdog wait` early. Inspect with `wdog tail <id> -n 50` before doing anything else.
+3. **An alert means: stop waiting and look.** `STALL`, `PROMPT`, `ORPHANS`, `ERROR_LIVE`, `BUSY`, `SILENCE`, `LOST` end `wdog wait` early. Inspect with `wdog tail <id> -n 50` before doing anything else.
 4. **Never answer a `PROMPT`.** Rerun non-interactively instead (`-y`, `--yes`, `--non-interactive`, `CI=1`, `GIT_EDITOR=true`, `DEBIAN_FRONTEND=noninteractive`).
 5. **Stay under your tool timeout.** If your shell tool has a time limit (often 2–10 minutes), don't `wdog run` something that may outlast it. Use `wdog start`, then `wdog wait <id> --for <less than the limit>`, and repeat the wait.
 6. **Clean up.** `wdog stop <id>` for every background job you started and no longer need. `wdog status` lists them.
@@ -104,6 +104,7 @@ wdog tail <id> -n 100  # last lines of the log
 | `ENV loaded=<n> file=<f>` | `.env` file loaded | nothing |
 | `STEP 2/3 OK 88s <cmd or label>` / `STEP 2/3 FAIL exit=1 ...` | a step finished | on `FAIL`, read `ERRORS` and `TAIL` |
 | `STALL 120s cpu=0.0s io=0B pids=3 last="..."` | no output, no CPU, no I/O for that long | likely hung: check `last=`, `wdog tail`; stop and fix (network, lock, waiting on a service) |
+| `SILENCE 10m00s cpu=3.2s io=48MiB pids=4 last="..."` | only with `--silence`: no output for that long, but CPU/I/O may still move | `io`/`cpu` rising: probably working (download, copy); both near 0: likely stuck. Check `wdog tail <id>` |
 | `RESUMED after 151s` | activity came back after a stall | keep waiting |
 | `PROMPT line="Continue? [y/N]" via=text` | the command waits for input (`via=tty`: blocked reading the terminal) | stop it, rerun non-interactively (rule 4) |
 | `ORPHANS pids=123,124 "sleep 600" \| ...` | main process exited but children still run | usually a daemon or a stray server: stop with `wdog stop <id>` unless you wanted it |
@@ -140,6 +141,7 @@ Codes 124–127 can also come from a step itself. The `reason=` on the `DONE` li
 | --- | --- |
 | `--max 30m` | hard time limit for the whole run; kills the tree, exit 124 |
 | `--stall 300` | seconds of total inactivity before `STALL` (default 120). Raise it for steps that legitimately go quiet (big `docker build` layers, long compiles without output) |
+| `--silence 10m` | alert after that long with no output even if CPU/I/O move (off by default). For steps that normally print regularly; a quiet network wait or download never `STALL`s |
 | `--kill-on-stall` | stop the tree on the first `STALL` (exit 126) instead of only alerting |
 | `--keep-going` | run all steps even if one fails |
 | `--steps-file FILE` / `-` | steps from a script (file or stdin heredoc) split at `# -STEP- [label]` lines; replaces the `-- 'cmd'` arguments |

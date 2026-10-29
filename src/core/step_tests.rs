@@ -575,3 +575,56 @@ fn head_tail_summary() {
         }
     );
 }
+
+#[test]
+fn silence_fires_while_cpu_moves_and_rearms_on_output() {
+    let t0 = Instant::now();
+    let mut spec = RunSpec::new(vec!["quiet".into()]);
+    spec.silence = Some(Duration::from_secs(3));
+    let mut s = state_with(spec, Mode::Foreground, t0);
+    s = run(s, vec![(spawned(0, 10), t0)]).0;
+    let mut all = vec![];
+    for i in 1..=8u64 {
+        let t = secs(t0, i as f64);
+        if i == 5 {
+            let line = Input::Line {
+                step: 0,
+                attempt: 0,
+                stream: Stream::Out,
+                text: "progress".into(),
+            };
+            let (ns, fx) = step(s, line, t);
+            s = ns;
+            all.extend(fx);
+        }
+        let (ns, fx) = step(s, Input::Sample(sample(t, vec![member(10, i * 100)])), t);
+        s = ns;
+        all.extend(fx);
+    }
+    let w = words(&all);
+    assert_eq!(w.iter().filter(|x| *x == "SILENCE").count(), 2, "{w:?}");
+    assert!(!w.contains(&"STALL".to_string()));
+    let first = events(&all)
+        .into_iter()
+        .find(|e| matches!(e, Event::Silence { .. }))
+        .unwrap();
+    let Event::Silence { after, pids, .. } = first else {
+        unreachable!()
+    };
+    assert_eq!((after, pids), (3.0, 1));
+}
+
+#[test]
+fn silence_is_off_by_default() {
+    let t0 = Instant::now();
+    let mut s = state(&["quiet"], t0);
+    s = run(s, vec![(spawned(0, 10), t0)]).0;
+    let mut all = vec![];
+    for i in 1..=10u64 {
+        let t = secs(t0, i as f64 * 30.0);
+        let (ns, fx) = step(s, Input::Sample(sample(t, vec![member(10, i)])), t);
+        s = ns;
+        all.extend(fx);
+    }
+    assert!(!words(&all).contains(&"SILENCE".to_string()));
+}

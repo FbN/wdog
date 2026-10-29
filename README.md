@@ -68,7 +68,7 @@ wdog gc [--json]
 
 Options for `run` and `start`: `--steps-file`, `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,
 `--head N`, `--quiet`, `--live`, `--stall`, `--err REGEX`, `--no-default-err`, `--max`,
-`--kill-on-stall`, `--keep-going`, `--json`, `--stdin-tty`, `--interval`, `--busy`, `--retry N`.
+`--kill-on-stall`, `--keep-going`, `--json`, `--stdin-tty`, `--interval`, `--busy`, `--silence`, `--retry N`.
 Durations: `45`, `45s`, `30m`, `2h`, `200ms`.
 
 ### Steps from a script
@@ -110,6 +110,10 @@ EOF
 ...
 [wdog] DONE exit=1 reason=step_failed 4m01s
 ```
+
+`--silence 10m` (off by default) adds a `SILENCE` alert after that long with no output, even
+while CPU or I/O keep moving: `[wdog] SILENCE 10m00s cpu=3.2s io=48MiB pids=4 last="Fetching layers"`.
+Use it for steps that normally print something regularly.
 
 Live output is shown only on a terminal (or with `--live`); when stdout is a pipe, as for
 agents, only `[wdog]` lines and the final summary are printed. `--json` prints events as JSON

@@ -28,7 +28,7 @@ pub enum WaitOutcome {
     JobExited(Event),
     /// Job stopped (wdog stop or a signal) -> 1, the job's STOPPED line.
     Stopped(Event),
-    /// STALL / PROMPT / ORPHANS / ERROR_LIVE / BUSY -> 1
+    /// STALL / PROMPT / ORPHANS / ERROR_LIVE / BUSY / SILENCE -> 1
     Alert(Event),
     /// --for elapsed -> 124 (wait) or 0 (sleep)
     For(f64),

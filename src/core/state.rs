@@ -1,5 +1,6 @@
 use crate::detect::{
-    busy::Busy, errors::ErrorMatcher, errors::Errors, orphans::Orphans, prompt::Prompt, stall::Stall,
+    busy::Busy, errors::ErrorMatcher, errors::Errors, orphans::Orphans, prompt::Prompt, silence::Silence,
+    stall::Stall,
 };
 use crate::exit::EndReason;
 use crate::lines::ring::{Head, Tail};
@@ -65,6 +66,7 @@ pub struct Detectors {
     pub orphans: Orphans,
     pub errors: Errors,
     pub busy: Busy,
+    pub silence: Silence,
 }
 
 #[derive(Debug, Clone)]
@@ -173,6 +175,9 @@ impl State {
         }
         if self.detectors.busy.fired {
             a.push("BUSY".to_string());
+        }
+        if self.detectors.silence.fired {
+            a.push("SILENCE".to_string());
         }
         a
     }

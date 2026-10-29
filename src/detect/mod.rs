@@ -4,4 +4,5 @@ pub mod busy;
 pub mod errors;
 pub mod orphans;
 pub mod prompt;
+pub mod silence;
 pub mod stall;

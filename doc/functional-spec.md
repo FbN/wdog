@@ -88,6 +88,7 @@ Priorities: **Must** for the first version, **Should** soon after, **Could** if 
 | AN-7 | Each alert fires once per episode and re-arms after activity resumes. A stall that continues re-alerts at doubling intervals. | Should |
 | AN-8 | Alerts never stop the process unless `--kill-on-stall` is given. Leftover children (AN-5) are not killed either: `wdog` keeps reading their output into the log until the run ends. When `wdog run` returns, its output pipes close, so a leftover child that writes output after that gets `SIGPIPE` and usually dies. Processes that must keep running belong in `wdog start`. | Must |
 | AN-9 | **High CPU with no output:** optional alert after `--busy SECONDS` of CPU use with no output, to catch infinite loops. Off by default. | Could |
+| AN-10 | **No output:** optional alert after `--silence DURATION` with no output, whatever CPU and I/O do (a process that keeps reading or writing but prints nothing never stalls). It reports the CPU time and I/O used during the quiet stretch, the number of processes and the last line, fires once per quiet stretch, and re-arms on output or at the next step. It wakes `wait` and `sleep` like the other alerts and never stops anything (`--kill-on-stall` ignores it). Off by default: many steps are legitimately quiet for long. | Could |
 
 ### 4.4 Waiting
 

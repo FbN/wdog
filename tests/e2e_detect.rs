@@ -230,3 +230,46 @@ fn tty_prompt_acceptance() {
     assert_eq!(status.code(), Some(0));
     assert!(e.log(&id).contains("got=y"));
 }
+
+/// Reads files in a loop, prints nothing: no STALL (I/O moves), but SILENCE fires once.
+#[test]
+fn silence_alert_ignores_io() {
+    let e = Env::new();
+    let o = e.run(&[
+        "run",
+        "--interval",
+        "200ms",
+        "--stall",
+        "2",
+        "--silence",
+        "2",
+        "--max",
+        "4s",
+        "--",
+        "echo begin; while :; do head -c 65536 /dev/zero >/dev/null; sleep 0.05; done",
+    ]);
+    assert!(!o.has("STALL"), "{}", o.stdout);
+    assert_eq!(o.stdout.matches("SILENCE").count(), 1, "{}", o.stdout);
+    let line = o.stdout.lines().find(|l| l.contains("SILENCE")).unwrap();
+    assert!(
+        line.contains("pids=") && line.contains("last=\"begin\""),
+        "{line}"
+    );
+}
+
+#[test]
+fn silence_wakes_wait() {
+    let e = Env::new();
+    let id = e.start(&["--interval", "200ms", "--silence", "1", "--", "sleep 6531"]);
+    let o = e.run(&["wait", &id, "--for", "10s"]);
+    assert_eq!(o.code, Some(1), "{}", o.stdout);
+    assert!(o.has("SILENCE"), "{}", o.stdout);
+    assert!(
+        e.status(&id)["alerts"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|a| a == "SILENCE")
+    );
+    e.run(&["stop", &id]);
+}

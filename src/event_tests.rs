@@ -99,6 +99,16 @@ fn other_variants() {
             },
             "[wdog] BUSY 30s cpu=29.8s",
         ),
+        (
+            Event::Silence {
+                after: 600.0,
+                cpu: 3.2,
+                io: Some(48 * 1024 * 1024),
+                pids: 4,
+                last: "Fetching layers".into(),
+            },
+            "[wdog] SILENCE 10m00s cpu=3.2s io=48MiB pids=4 last=\"Fetching layers\"",
+        ),
         (Event::Timeout { after: 120.0 }, "[wdog] TIMEOUT after=2m00s"),
         (
             Event::Ready {

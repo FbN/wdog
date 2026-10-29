@@ -1,7 +1,7 @@
 //! The reducer. Pure: no I/O, no clock (`now` is passed in).
 
 use super::{Effect, Input, MainProc, State};
-use crate::detect::{busy, errors, orphans, prompt, stall};
+use crate::detect::{busy, errors, orphans, prompt, silence, stall};
 use crate::event::Event;
 use crate::exit::{self, EndReason, Exit};
 use crate::lines::{Stream, logfmt};
@@ -214,6 +214,7 @@ fn output_activity(s: &mut State, now: Instant, fx: &mut Vec<Effect>) {
     s.out.last_output_at = now;
     s.status_dirty = true;
     s.detectors.busy = busy::on_output(s.detectors.busy);
+    s.detectors.silence = silence::on_output(s.detectors.silence);
     activity_seen(s, now, fx);
 }
 
@@ -323,6 +324,25 @@ fn on_sample(s: &mut State, sm: crate::proc::sample::Sample, now: Instant, fx: &
             );
         }
     }
+    if let (true, Some(th)) = (step_running, s.spec.silence) {
+        let since = s.out.last_output_at.max(s.step_started);
+        let (d, fire) = silence::on_sample(s.detectors.silence, since, sm.cpu_ticks, sm.io_bytes, th, now);
+        s.detectors.silence = d;
+        if let Some(f) = fire {
+            let io = (sm.io_unknown < sm.members.len()).then_some(f.io_bytes);
+            emit(
+                fx,
+                Event::Silence {
+                    after: f.after,
+                    cpu: f.cpu_ticks as f64 / s.job.clk_tck,
+                    io,
+                    pids: sm.members.len(),
+                    last: s.last_text(),
+                },
+            );
+            s.status_dirty = true;
+        }
+    }
     s.last_sample = Some(sm);
     try_complete(s, now, fx);
     check_finish(s, now, fx);
@@ -382,6 +402,7 @@ fn reset_step_detectors(s: &mut State) {
     s.detectors.stall = Default::default();
     s.detectors.prompt = Default::default();
     s.detectors.busy = Default::default();
+    s.detectors.silence = Default::default();
     s.detectors.orphans.waiting_since = None;
     s.out.partial = [None, None];
 }

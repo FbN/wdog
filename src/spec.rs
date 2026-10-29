@@ -48,6 +48,8 @@ pub struct RunSpec {
     pub orphan_grace: Duration,
     #[serde(with = "ms_opt")]
     pub busy: Option<Duration>,
+    #[serde(default, with = "ms_opt", skip_serializing_if = "Option::is_none")]
+    pub silence: Option<Duration>,
     /// Final list of regexes, defaults already merged.
     pub err_patterns: Vec<String>,
     #[serde(with = "ms_opt")]
@@ -87,6 +89,7 @@ impl RunSpec {
             prompt_grace: Duration::from_secs(5),
             orphan_grace: Duration::from_secs(5),
             busy: None,
+            silence: None,
             err_patterns: merge_patterns(&[], false),
             max: None,
             kill_on_stall: false,

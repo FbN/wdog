@@ -77,6 +77,13 @@ pub enum Event {
         after: f64,
         cpu: f64,
     },
+    Silence {
+        after: f64,
+        cpu: f64,
+        io: Option<u64>,
+        pids: usize,
+        last: String,
+    },
     Errors {
         count: usize,
         items: Vec<(u64, String)>,
@@ -132,6 +139,7 @@ impl Event {
                 | Event::Orphans { .. }
                 | Event::ErrorLive { .. }
                 | Event::Busy { .. }
+                | Event::Silence { .. }
         )
     }
 }
@@ -222,6 +230,20 @@ pub fn render_text(e: &Event) -> String {
         }
         Event::ErrorLive { log_line, text } => format!("ERROR_LIVE log:{log_line} {}", quote(text)),
         Event::Busy { after, cpu } => format!("BUSY {} cpu={cpu:.1}s", fmt_secs(*after)),
+        Event::Silence {
+            after,
+            cpu,
+            io,
+            pids,
+            last,
+        } => {
+            let io = io.map(fmt_bytes).unwrap_or_else(|| "?".to_string());
+            format!(
+                "SILENCE {} cpu={cpu:.1}s io={io} pids={pids} last={}",
+                fmt_secs(*after),
+                quote(last)
+            )
+        }
         Event::Errors { count, items } => {
             let it: Vec<String> = items
                 .iter()
