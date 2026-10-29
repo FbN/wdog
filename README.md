@@ -6,7 +6,7 @@ run looks wrong: no progress (`STALL`), waiting for input (`PROMPT`), leftover p
 (`ORPHANS`), or error output while it keeps running (`ERROR_LIVE`). It also replaces the usual
 `> log 2>&1 &`, `sleep; tail`, `kill -0` plumbing with `start`, `wait`, `status` and `stop`.
 
-Spec: [`doc/functional-spec.md`](doc/functional-spec.md). Plan: [`doc/plan/`](doc/plan/00-overview.md).
+Spec: [`doc/functional-spec.md`](doc/functional-spec.md).
 Agent skill: [`doc/skill/wdog/SKILL.md`](doc/skill/wdog/SKILL.md).
 
 ## Quick start
@@ -236,8 +236,7 @@ SECS=60 ./scripts/bench-tree.sh   # NF-2: CPU while watching 50 processes
 ```
 
 Unit tests sit next to each module (`foo.rs` + `foo_tests.rs`); end-to-end tests are in
-`tests/`. The `spike/` package holds the throwaway checks of the Linux process behaviour
-(results in `doc/plan/spike-results.md`).
+`tests/`.
 
 ## Author and license
 

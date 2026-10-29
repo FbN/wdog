@@ -69,7 +69,7 @@ pub fn recorded_exit(e: &Exit) -> i32 {
 }
 
 /// End the process. For `Signal`, restore the default action, unblock it and raise it, so the
-/// caller sees "killed by signal" (async-signal never restores SIG_DFL itself: spike row 14).
+/// caller sees "killed by signal" (async-signal never restores SIG_DFL itself).
 pub fn apply(e: Exit) -> ! {
     crate::console::flush();
     match e {
