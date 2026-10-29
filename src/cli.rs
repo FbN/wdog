@@ -59,6 +59,8 @@ pub enum Cmd {
     Stop(StopArgs),
     /// Remove job directories older than 24 hours
     Gc(GcArgs),
+    /// Live view of all jobs in the terminal, like top (for humans)
+    Monitor,
     #[command(hide = true, name = "__supervise")]
     Supervise(IdArg),
     #[command(hide = true, name = "__env0")]

@@ -162,4 +162,5 @@ Codes 124–127 can also come from a step itself. The `reason=` on the `DONE` li
 - **`--steps-file` steps are separate shells.** Only the prelude (text before the first `# -STEP-`) is shared, copied into each step; a `cd` or `export` inside one step does not reach the next. A marker line inside a heredoc body within a step still splits it.
 - **Port already in use:** `wait --port` only checks that something accepts connections. If an old server holds the port, `READY` can be a false positive; check `wdog status` and stop old jobs first.
 - **Jobs are per user** and kept 24 h (`wdog gc` cleans up now). Logs live under `$WDOG_HOME/<id>/out.log`.
+- `wdog monitor` is a full-screen live view for humans; it needs a terminal, so don't run it. Use `status`, `wait` and `tail`.
 - If the watcher is killed (for example by your tool's timeout), its guard cleans up the tree and the job shows `lost`. Rerun with `wdog start`.

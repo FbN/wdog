@@ -12,6 +12,7 @@ mod exec;
 mod exit;
 mod job;
 mod lines;
+mod monitor;
 mod proc;
 mod rt;
 mod spec;
@@ -96,6 +97,7 @@ fn dispatch(c: Cmd) -> anyhow::Result<Exit> {
         Cmd::Errors(a) => cmd::errors::run(&a.id, a.json),
         Cmd::Stop(a) => cmd::stop::run(&a.id, &a.grace, a.json),
         Cmd::Gc(a) => cmd::gc::run(a.json),
+        Cmd::Monitor => monitor::run(),
         Cmd::Supervise(a) => cmd::supervise::run(&a.id),
         Cmd::Guard(a) => cmd::guard::run(&a.id),
         Cmd::Env0 => {

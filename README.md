@@ -64,6 +64,7 @@ wdog tail  <id> [-n 50] [-f] [--raw]
 wdog errors <id> [--json]
 wdog stop  <id> [--grace 5s] [--json]
 wdog gc [--json]
+wdog monitor                            # live view of all jobs, like top
 ```
 
 Options for `run` and `start`: `--steps-file`, `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,
@@ -95,6 +96,24 @@ EOF
   to turn that off.
 - Output shows the label (`STEP 2/3 OK 4s  db`), or the step's first command plus `…`.
 - No marker: the whole script is one step. With `-`, the steps' stdin is `/dev/null`.
+
+### Watching jobs live
+
+`wdog monitor` is a full-screen view of all jobs for humans, like `top`. On the left, one row per job: id,
+state (with alerts such as `STALL`, coloured), idle time, step and run time. On the right, the output
+of the selected job, following new lines.
+
+| Key | Action |
+| --- | --- |
+| `↑` `↓` | pick a job |
+| `PgUp` `PgDn` | scroll the output (scrolling up pauses following) |
+| `Home` / `End` | top of the output / follow new lines again |
+| `←` `→` | pan long lines |
+| `o` | switch between the output and the job's steps (state, exit code, duration, script) |
+| `q` `Esc` | quit |
+
+It only reads the job files, so it never affects a running job. Agents should keep using `status`,
+`wait` and `tail`.
 
 ## Output
 

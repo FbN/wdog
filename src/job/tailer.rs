@@ -67,9 +67,15 @@ pub fn split_complete(buf: &mut Vec<u8>) -> Vec<String> {
 
 /// The last `n` lines of a file, reading backwards in 8 KiB blocks.
 pub fn last_lines(path: &Path, n: usize) -> std::io::Result<Vec<String>> {
+    let len = std::fs::metadata(path)?.len();
+    Ok(lines_before(path, len, n)?.0)
+}
+
+/// The last `n` lines of the first `end` bytes of a file, and whether they
+/// reach the start of the file.
+pub fn lines_before(path: &Path, end: u64, n: usize) -> std::io::Result<(Vec<String>, bool)> {
     let mut f = File::open(path)?;
-    let len = f.metadata()?.len();
-    let mut pos = len;
+    let mut pos = end.min(f.metadata()?.len());
     let mut data: Vec<u8> = vec![];
     while pos > 0 {
         let step = pos.min(8192);
@@ -84,15 +90,14 @@ pub fn last_lines(path: &Path, n: usize) -> std::io::Result<Vec<String>> {
             break;
         }
     }
+    if data.is_empty() {
+        return Ok((vec![], true));
+    }
     let text = String::from_utf8_lossy(&data);
     let lines: Vec<&str> = text.strip_suffix('\n').unwrap_or(&text).split('\n').collect();
-    if data.is_empty() {
-        return Ok(vec![]);
-    }
-    Ok(lines[lines.len().saturating_sub(n)..]
-        .iter()
-        .map(|s| s.to_string())
-        .collect())
+    let from = lines.len().saturating_sub(n);
+    let lines = lines[from..].iter().map(|s| s.to_string()).collect();
+    Ok((lines, pos == 0 && from == 0))
 }
 
 #[cfg(test)]
