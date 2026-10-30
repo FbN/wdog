@@ -14,6 +14,7 @@ mod job;
 mod lines;
 mod monitor;
 mod proc;
+mod remote;
 mod rt;
 mod spec;
 mod stepfile;
@@ -98,6 +99,12 @@ fn dispatch(c: Cmd) -> anyhow::Result<Exit> {
         Cmd::Stop(a) => cmd::stop::run(&a.id, &a.grace, a.json),
         Cmd::Gc(a) => cmd::gc::run(a.json),
         Cmd::Monitor => monitor::run(),
+        Cmd::On(a) => cmd::on::run(&cmd::on::OnOpts {
+            host: a.host,
+            dir: a.dir,
+            agent: a.agent,
+            args: a.args,
+        }),
         Cmd::Supervise(a) => cmd::supervise::run(&a.id),
         Cmd::Guard(a) => cmd::guard::run(&a.id),
         Cmd::Env0 => {

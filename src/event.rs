@@ -132,6 +132,12 @@ pub enum Event {
     Error {
         msg: String,
     },
+    /// `wdog on`: the agent was installed on `host`; `path` is the wrapper for plain ssh.
+    On {
+        host: String,
+        installed: String,
+        path: String,
+    },
 }
 
 impl Event {
@@ -286,6 +292,11 @@ pub fn render_text(e: &Event) -> String {
             format!("DONE exit={exit} reason={} {}", reason.as_str(), fmt_secs(*dur))
         }
         Event::Error { msg } => format!("ERROR {msg}"),
+        Event::On {
+            host,
+            installed,
+            path,
+        } => format!("ON host={host} installed={installed} path={path}"),
     };
     format!("{PREFIX} {body}")
 }

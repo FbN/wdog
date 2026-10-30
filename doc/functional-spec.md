@@ -113,6 +113,21 @@ Priorities: **Must** for the first version, **Should** soon after, **Could** if 
 | BG-8 | `wdog monitor` is a live full-screen view for humans, like `top`. On the left, one row per job (newest start first, so rows don't move while jobs run): id, name, state with any alerts of a live job, idle time, current step, run time; alerts are coloured. On the right, the selected job's output, following new lines (`PgUp`/`PgDn` scroll and pause following, `Home` goes to the top, `End` follows again, `←`/`→` pan long lines); `o` switches it to the job's steps (state, exit code, duration and script of each). `↑`/`↓` pick a job, `q`, `Esc` or Ctrl-C quit. It refreshes twice a second, only reads job files, and never changes a job. Escape sequences and control characters in the output are removed before display. Without a terminal it exits 125 with an `ERROR` line. | Could |
 | BG-9 | `--name NAME` on `run` and `start` names the job; every command that takes a job id also takes its name. Names use letters, digits, `.`, `_`, `-` (1–32, not starting with `.` or `-`) and cannot be only hex digits. A name belongs to the directory the job runs in (`--cwd`, or the current one). Starting a job whose name points to a finished (or lost) job started in the same directory removes that job and takes the name; the start line shows `name=<n> replaced=<old id>`. If the job still runs, or was started in another directory, `start` and `run` exit 125 with an `ERROR` line. `status` shows `name=`, and `status.json` has `"name"`. | Should |
 
+### 4.6 Remote hosts
+
+A step that runs work on another machine over ssh shows no CPU, I/O or output locally while the remote side works, so local detection is blind there. `wdog on HOST` runs wdog itself on the remote host.
+
+| ID | Requirement | Priority |
+| --- | --- | --- |
+| RM-1 | `wdog on [--dir DIR] [--agent PATH] HOST <wdog command>` runs any wdog command (`run`, `start`, `wait`, `status`, `tail`, ...) on HOST over the user's own `ssh` (so `~/.ssh/config`, keys and ProxyJump apply), with `BatchMode=yes` so it never waits on a password prompt. stdout passes straight through and the exit code is the remote command's. | Should |
+| RM-2 | If wdog is missing on HOST, `on` installs it first, in the same call, and then runs the command: no separate setup step. The usual case (already installed) costs one ssh connection. | Should |
+| RM-3 | The agent is this binary, stored as `<DIR>/wdog-<uid>/bin/wdog-<version>-<fingerprint>` (`DIR` defaults to `/tmp`), so builds and versions never mix. Jobs use `WDOG_HOME=<DIR>/wdog-<uid>` on the remote (not `$XDG_RUNTIME_DIR`, which systemd deletes at logout and would lose background jobs). Nothing is written outside that directory; a reboot removes it. Other agent versions there are removed on install. | Should |
+| RM-4 | The upload goes through ssh stdin to a temp file, is checked for size, then renamed into place, so a partial file is never run. The directory and `bin/` are created `0700`; if either is a symlink or owned by another user, `on` exits 125 with an `ERROR` line. After the upload the agent must run (`--version`); if it cannot (a `noexec` mount), `on` exits 125 and suggests `--dir`. | Should |
+| RM-5 | A wrapper `<DIR>/wdog-<uid>/wdog` sets `WDOG_HOME` and runs the agent, so plain `ssh HOST /tmp/wdog-<uid>/wdog status` also works. An install prints `[wdog] ON host=<h> installed=<version> path=<wrapper>` (JSON with `--json`); calls that find the agent print nothing extra. | Should |
+| RM-6 | Only a static x86_64 binary is installed (no ELF interpreter); otherwise `on` exits 125 and points to the release build or `--agent PATH`. Remote hosts other than `Linux x86_64` are refused with exit 125. | Should |
+| RM-7 | The missing-agent case is reported by exit code 197 together with a marker line on stderr; marker lines are never shown. A command that itself exits 197 is never run a second time. | Must (if RM-2) |
+| RM-8 | stdin: with `--steps-file -`, local stdin is read fully first and sent on each attempt, so the script survives an install retry. `monitor` and `--stdin-tty` with a local terminal get `ssh -t` and the terminal. Every other command gets `/dev/null`, so ssh never consumes the caller's stdin. Paths in the command (`--cwd`, `--steps-file FILE`, `--env-file`) are on the remote host. | Should |
+
 ## 5. Interface, output and exit codes
 
 ### 5.1 Commands
@@ -130,6 +145,7 @@ wdog errors <id>
 wdog stop  <id> [--grace 5s]
 wdog gc
 wdog monitor                             # live view of all jobs (humans)
+wdog on [--dir DIR] HOST <command>       # any of the above on HOST over ssh
 ```
 
 Shared options: `--name`, `--cwd`, `--env`, `--env-file`, `--log`, `--tail`, `--head`, `--quiet`, `--live`, `--stall`, `--err`, `--no-default-err`, `--max`, `--kill-on-stall`, `--keep-going`, `--json`. Durations accept `s`, `m`, `h`; a bare number means seconds.
@@ -151,7 +167,7 @@ Every line `wdog` writes itself starts with ` [wdog]  ` followed by an upper-cas
 [wdog] DONE exit=1 reason=step_failed 241s
 ```
 
-Other event words: `ENV` (one per `--env-file`, e.g. `ENV loaded=12 file=.env.development`; key names only with `--json`), `PROMPT`, `ORPHANS`, `ERROR_LIVE`, `TIMEOUT`, `READY` (from `wait`), `STOPPED`, `LOST` (the watcher died and its guard cleaned up, see NF-4). With `--json`, each event is one JSON object per line instead.
+Other event words: `ENV` (one per `--env-file`, e.g. `ENV loaded=12 file=.env.development`; key names only with `--json`), `PROMPT`, `ORPHANS`, `ERROR_LIVE`, `TIMEOUT`, `READY` (from `wait`), `STOPPED`, `LOST` (the watcher died and its guard cleaned up, see NF-4), `ON` (`wdog on` installed the agent on a host, RM-5). With `--json`, each event is one JSON object per line instead.
 
 ### 5.3 Exit codes
 
@@ -181,7 +197,7 @@ A step's own exit code can be 124, 125, 126 or 127 too (126 is common: "permissi
 
 ## 7. Out of scope, open questions and acceptance tests
 
-**Out of scope for the first version:** macOS and Windows; diagnosing why a process is stuck (stack dumps, `strace`); bugs inside the agent harness itself, where no child process is ever started; remote hosts and containers other than the current one.
+**Out of scope for the first version:** macOS and Windows; diagnosing why a process is stuck (stack dumps, `strace`); bugs inside the agent harness itself, where no child process is ever started; containers other than the current one; remote hosts other than Linux x86_64, and remote work started by plain `ssh` inside a step (use `wdog on`, §4.6).
 
 **Open questions**
 
@@ -204,4 +220,5 @@ A step's own exit code can be 124, 125, 126 or 127 too (126 is common: "permissi
 | `wdog run -- 'true' 'false' 'echo never'` | Step 3 not run; exit code 1 |
 | `wdog stop <id>` on a tree of 3 processes | All 3 gone within the grace period |
 | `kill -9` the `wdog run` process of `sh -c 'sleep 600 & sleep 600'` | Both `sleep` gone within 3 s; `wdog status` shows `lost`; `LOST` in the job's events |
+| `wdog on HOST run -- 'exit 3'` on a host without wdog | `ON host=HOST installed=...`, then `DONE exit=3`; exit 3; a second call prints no `ON` |
 | `wdog run -- 'sh -c "sleep 600 &"'` | `ORPHANS`; the orphan is still alive after `wdog run` returns (not killed, AN-8) |

@@ -14,6 +14,7 @@ Use `wdog` for:
 - builds, test suites, package installs, migrations, `docker build`, anything that may take > 30 s;
 - servers and watchers (`npm run dev`, `python -m http.server`, `cargo watch`);
 - commands that might ask a question (`apt`, `npx`, `git` with an editor, `ssh`, `gpg`);
+- long work on another machine over ssh (use `wdog on HOST`, recipe below);
 - any command that hung or timed out before.
 
 Plain shell is fine for quick commands (`ls`, `git status`, `cat`, a single fast `grep`).
@@ -90,6 +91,25 @@ wdog run --env-file .env.development -- 'npm run migrate' 'npm test'
 
 Same as `set -a && . ./.env.development && set +a` before each step, but your own shell stays unchanged. Values are never printed or logged; `--env K=V` overrides the file.
 
+### Long work on another host (ssh)
+
+Don't wrap `ssh host long-op` in a local `wdog run`: the work happens remotely, so wdog sees no
+CPU, I/O or output and reports a false `STALL`. Run wdog on the host instead:
+
+```bash
+wdog on db01 start --name mig -- './migrate.sh --all'
+wdog on db01 wait mig --for 8m        # repeat while TIMEOUT, as locally
+wdog on db01 tail mig -n 50
+wdog on db01 stop mig
+```
+
+Any wdog command works after `wdog on HOST`. If wdog is missing there, the first call installs it in
+`/tmp/wdog-<uid>/` (printing `ON host=.. installed=.. path=..`) and runs the command; you never
+install it yourself. Paths in the command are on the remote host; `--steps-file -` with a heredoc
+sends the script from here. The exit code and `[wdog]` lines are the remote's. It uses key login
+only (`BatchMode=yes`): if ssh fails with `Permission denied`, tell the user. Prefer `start` +
+`wait` over `run` for long work: if ssh drops, the job keeps running and `wait` can be repeated.
+
 ### Pause while a job runs, but wake on trouble
 
 ```bash
@@ -127,7 +147,8 @@ wdog tail <id> -n 100  # last lines of the log
 | `LOST killed=<n>` | the watcher itself died (killed, crashed); its tree was cleaned up (the step's main process dies with the watcher, `killed` counts only what was left after it, so 0 is normal) | rerun the job |
 | `LOG_FULL at=64MiB` | the log hit its size cap; later lines are not on disk | the final `TAIL` is still correct; reduce output if you need the middle |
 | `DONE exit=<n> reason=<r> <dur>` | the run ended | see exit codes below |
-| `ERROR <msg>` | wdog itself failed (bad options, cannot start, bad `.env`) | fix the command line |
+| `ON host=<h> installed=<v> path=<p>` | `wdog on` installed wdog on that host | nothing; `p` also works with plain `ssh <h> <p> ...` |
+| `ERROR <msg>` | wdog itself failed (bad options, cannot start, bad `.env`, ssh/install failure with `wdog on`) | fix the command line |
 
 ## Exit codes
 

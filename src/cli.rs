@@ -61,6 +61,9 @@ pub enum Cmd {
     Gc(GcArgs),
     /// Live view of all jobs in the terminal, like top (for humans)
     Monitor,
+    /// Run a wdog command on another host over ssh; installs wdog in /tmp there if missing
+    #[command(after_help = ON_HELP)]
+    On(OnArgs),
     #[command(hide = true, name = "__supervise")]
     Supervise(IdArg),
     #[command(hide = true, name = "__env0")]
@@ -150,6 +153,41 @@ pub struct RunArgs {
         value_name = "CMD"
     )]
     pub commands: Vec<String>,
+}
+
+const ON_HELP: &str = "\
+Examples:
+  wdog on db01 start --name mig -- './migrate.sh --all'
+  wdog on db01 wait mig --for 2h
+  wdog on db01 tail mig -n 50
+
+The first call copies this binary to /tmp/wdog-<uid>/ on the host (needs the static release
+build) and prints `[wdog] ON host=.. installed=.. path=..`. Nothing is written outside it, and a
+reboot removes it. Paths in the command (--cwd, --steps-file FILE, --env-file) are on the host;
+--steps-file - sends local stdin. The exit code is the remote command's. ssh runs with
+BatchMode=yes, so set up key login (and ~/.ssh/config) first.
+
+Every line wdog writes starts with [wdog]. Read the last one: DONE exit=<n> reason=<r>, or ERROR <msg>.";
+
+#[derive(Args, Debug)]
+pub struct OnArgs {
+    /// Remote base directory, absolute; wdog uses <DIR>/wdog-<uid> (default /tmp)
+    #[arg(long, value_name = "DIR")]
+    pub dir: Option<String>,
+    /// Binary to install on the host (default: this one)
+    #[arg(long, value_name = "PATH")]
+    pub agent: Option<PathBuf>,
+    /// ssh destination: host, user@host or a ~/.ssh/config alias
+    pub host: String,
+    /// The wdog command to run there, e.g. status, or start --name x -- 'cmd'
+    #[arg(
+        required = true,
+        trailing_var_arg = true,
+        allow_hyphen_values = true,
+        num_args = 1..,
+        value_name = "COMMAND"
+    )]
+    pub args: Vec<String>,
 }
 
 #[derive(Args, Debug)]

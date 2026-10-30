@@ -111,6 +111,7 @@ wdog errors <id> [--json]
 wdog stop  <id> [--grace 5s] [--json]
 wdog gc [--json]
 wdog monitor                            # live view of all jobs, like top
+wdog on HOST <any command above>        # the same on another host, over ssh
 ```
 
 Options for `run` and `start`: `--name`, `--steps-file`, `--cwd`, `--env K=V`, `--env-file FILE`, `--log`, `--tail N`,
@@ -159,6 +160,33 @@ EOF
   to turn that off.
 - Output shows the label (`STEP 2/3 OK 4s  db`), or the step's first command plus `…`.
 - No marker: the whole script is one step. With `-`, the steps' stdin is `/dev/null`.
+
+### Remote hosts
+
+Work that runs on another machine over ssh shows no CPU, I/O or output locally, so a plain
+`ssh host long-op` step would look stalled. `wdog on HOST` runs wdog itself on that host:
+
+```bash
+wdog on db01 start --name mig -- './migrate.sh --all "big table"'
+wdog on db01 wait mig --for 2h
+wdog on db01 tail mig -n 50
+```
+
+- **No setup.** If wdog is missing there, the first call copies this binary over ssh and then runs
+  the command, printing `[wdog] ON host=db01 installed=0.6.0 path=/tmp/wdog-1000/wdog`. Later
+  calls use it directly (one ssh connection).
+- **Nothing persistent.** Everything lives in `/tmp/wdog-<uid>/` (mode 0700; the agent in `bin/`,
+  jobs next to it), gone after a reboot. `--dir DIR` picks another base, e.g. when `/tmp` is
+  `noexec`.
+- **Plain ssh works too:** `ssh db01 /tmp/wdog-1000/wdog status mig`.
+- Uses your `ssh` and `~/.ssh/config`, with `BatchMode=yes`: set up key login first.
+- The exit code is the remote command's. Paths in the command (`--cwd`, `--steps-file FILE`,
+  `--env-file`) are on the remote host; `--steps-file -` sends your local stdin.
+- Remote must be Linux x86_64, and the installed binary must be static: the release build
+  (`cargo binstall wdog` or the musl tarball). A `cargo install` build can pass `--agent PATH` to a
+  static one.
+- If ssh drops, background jobs keep running; run `wdog on db01 wait mig` again. Use `start` +
+  `wait` for long work rather than `run`.
 
 ### Watching jobs live
 

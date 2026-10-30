@@ -1,7 +1,7 @@
 {
   "name": "wdog",
   "displayName": "wdog",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Run long shell commands under the wdog watchdog: hangs, input prompts, leftover processes and live errors are reported instead of silently eating time",
   "author": {
     "name": "Fabiano Taioli",
