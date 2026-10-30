@@ -60,4 +60,5 @@ package() {
   install -Dm0644 README.md -t "$pkgdir/usr/share/doc/wdog/"
   install -Dm0644 doc/agent-snippet.md -t "$pkgdir/usr/share/doc/wdog/"
   install -Dm0644 plugin/skills/wdog/SKILL.md -t "$pkgdir/usr/share/wdog/skill/wdog/"
+  install -Dm0644 plugin/skills/wdog/references/reference.md -t "$pkgdir/usr/share/wdog/skill/wdog/references/"
 }
